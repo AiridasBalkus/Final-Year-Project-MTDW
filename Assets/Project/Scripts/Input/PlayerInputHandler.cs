@@ -11,6 +11,8 @@ public class PlayerInputHandler : MonoBehaviour
     public bool LookIsMouse { get; private set; } // mouse delta and stick values are on different scales
 
     public event Action LockOnPressed;
+    public event Action AttackPressed;
+    public event Action DodgePressed;
 
     PlayerControls controls;
 
@@ -19,12 +21,16 @@ public class PlayerInputHandler : MonoBehaviour
         // created here instead of Awake because a script reload in play mode skips Awake
         controls ??= new PlayerControls();
         controls.Player.LockOn.performed += OnLockOn;
+        controls.Player.Attack.performed += OnAttack;
+        controls.Player.Dodge.performed += OnDodge;
         controls.Player.Enable();
     }
 
     void OnDisable()
     {
         controls.Player.LockOn.performed -= OnLockOn;
+        controls.Player.Attack.performed -= OnAttack;
+        controls.Player.Dodge.performed -= OnDodge;
         controls.Player.Disable();
     }
 
@@ -47,5 +53,15 @@ public class PlayerInputHandler : MonoBehaviour
     void OnLockOn(InputAction.CallbackContext ctx)
     {
         LockOnPressed?.Invoke();
+    }
+
+    void OnAttack(InputAction.CallbackContext ctx)
+    {
+        AttackPressed?.Invoke();
+    }
+
+    void OnDodge(InputAction.CallbackContext ctx)
+    {
+        DodgePressed?.Invoke();
     }
 }

@@ -27,6 +27,10 @@ public class PlayerLocomotion : MonoBehaviour
 
     public Transform LockOnTarget { get; private set; }
 
+    // turned off by the combat FSM while attacking/dodging, those clips move with their own root motion
+    public bool MovementEnabled { get; set; } = true;
+    public bool StraightRootMotion { get; set; } // the roll clip drifts sideways, this keeps it straight
+
     static readonly int SpeedHash = Animator.StringToHash("Speed");
     static readonly int MoveXHash = Animator.StringToHash("MoveX");
     static readonly int MoveYHash = Animator.StringToHash("MoveY");
@@ -52,6 +56,8 @@ public class PlayerLocomotion : MonoBehaviour
 
     void Update()
     {
+        if (!MovementEnabled) return;
+
         Vector3 moveDir = CameraRelative(input.Move);
         float speed = GetTargetSpeed(input.Move.magnitude);
         float dt = Time.deltaTime;
@@ -82,6 +88,8 @@ public class PlayerLocomotion : MonoBehaviour
     {
         // only use XZ from the animation, gravity handles Y
         Vector3 delta = animator.deltaPosition;
+        if (StraightRootMotion)
+            delta = transform.forward * Mathf.Max(0f, Vector3.Dot(delta, transform.forward));
 
         if (controller.isGrounded && verticalVelocity < 0f)
             verticalVelocity = groundedStickVelocity;
@@ -90,6 +98,14 @@ public class PlayerLocomotion : MonoBehaviour
 
         delta.y = verticalVelocity * Time.deltaTime;
         controller.Move(delta);
+    }
+
+    // so the dodge goes where the stick is pushed
+    public void FaceMoveInput()
+    {
+        Vector3 dir = CameraRelative(input.Move);
+        if (dir.sqrMagnitude < 0.01f) return;
+        transform.rotation = Quaternion.LookRotation(dir);
     }
 
     Vector3 CameraRelative(Vector2 stick)
