@@ -38,13 +38,13 @@ public class HitResolver : MonoBehaviour
 
         if (dist > range || angle > maxAngle)
         {
-            Debug.Log($"[Hit] {name} -> {target.name}: out of reach ({dist:F1}m, {angle:F0} deg)");
+            Debug.Log($"[Hit] {name}, Target: {target.name}: out of reach ({dist:F1}m, {angle:F0} deg)");
             return HitResult.OutOfReach;
         }
 
         if (target.Invincible)
         {
-            Debug.Log($"[Hit] {name} -> {target.name}: DODGED (i-frames)");
+            Debug.Log($"[Hit] {name}, Target: {target.name}: DODGED (i-frames)");
             return HitResult.Dodged;
         }
 
@@ -53,7 +53,7 @@ public class HitResolver : MonoBehaviour
         int damage = Mathf.Max(Mathf.RoundToInt(baseDamage * roll), 1);
         target.TakeDamage(damage);
 
-        Debug.Log($"[Hit] {name} -> {target.name}: HIT {damage}, {target.name} HP {target.Health}/{target.maxHealth}");
+        Debug.Log($"[Hit] {name}, Target: {target.name}: HIT {damage}, {target.name} HP {target.Health}/{target.maxHealth}");
         return HitResult.Hit;
     }
 }
