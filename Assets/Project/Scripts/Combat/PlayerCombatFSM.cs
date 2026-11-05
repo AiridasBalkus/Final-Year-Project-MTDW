@@ -15,12 +15,14 @@ public struct CombatEvent
 // If the current state can't handle an event yet it stays queued (that's the input buffer)
 // until it's older than bufferTime. Only this script sets the Attack/Dodge/Hit triggers.
 [RequireComponent(typeof(Animator), typeof(CombatStats), typeof(HitResolver))]
+[RequireComponent(typeof(Stamina))]
 public class PlayerCombatFSM : MonoBehaviour
 {
     public PlayerInputHandler input;
     public PlayerLocomotion locomotion;
     public LockOnController lockOn;
     public float bufferTime = 0.3f;
+    public float dodgeStaminaCost = 15f; // attack cost comes from the AttackData
     public bool logEvents = true;
 
     public CombatState State { get; private set; } = CombatState.Locomotion;
@@ -33,12 +35,14 @@ public class PlayerCombatFSM : MonoBehaviour
     Animator animator;
     CombatStats stats;
     HitResolver resolver;
+    Stamina stamina;
 
     void Awake()
     {
         animator = GetComponent<Animator>();
         stats = GetComponent<CombatStats>();
         resolver = GetComponent<HitResolver>();
+        stamina = GetComponent<Stamina>();
     }
 
     void OnEnable()
@@ -96,14 +100,24 @@ public class PlayerCombatFSM : MonoBehaviour
 
             case CombatEventType.AttackPressed:
                 if (State != CombatState.Locomotion) return false;
+                if (OutOfStamina(e)) return true;
                 ChangeState(CombatState.Attacking);
                 return true;
 
             case CombatEventType.DodgePressed:
                 if (State != CombatState.Locomotion) return false;
+                if (OutOfStamina(e)) return true;
                 ChangeState(CombatState.Dodging);
                 return true;
         }
+        return true;
+    }
+
+    // checked when the action would start, so the event is dropped rather than kept waiting
+    bool OutOfStamina(CombatEvent e)
+    {
+        if (stamina.CanAct) return false;
+        Log($"{e.type} dropped in {State}, no stamina ({stamina.Current:F0})");
         return true;
     }
 
@@ -118,11 +132,13 @@ public class PlayerCombatFSM : MonoBehaviour
 
         if (next == CombatState.Attacking)
         {
+            stamina.Spend(resolver.attack.staminaCost);
             resolver.BeginSwing();
             SetTrigger(AttackHash);
         }
         else if (next == CombatState.Dodging)
         {
+            stamina.Spend(dodgeStaminaCost);
             locomotion.FaceMoveInput();
             SetTrigger(DodgeHash);
         }

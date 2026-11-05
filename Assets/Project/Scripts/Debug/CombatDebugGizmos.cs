@@ -22,22 +22,22 @@ public class CombatDebugGizmos : MonoBehaviour
 
         Vector3 feet = transform.position + Vector3.up * 0.05f; // stops z-fighting with the floor
 
-        if (showReach && resolver != null) DrawReach(feet, resolver);
+        if (showReach && resolver != null && resolver.attack != null) DrawReach(feet, resolver.attack);
         if (showLockOn && lockOn != null) DrawLockOn(feet, lockOn);
         if (showLabel && stats != null) DrawLabel(stats);
     }
 
-    void DrawReach(Vector3 feet, HitResolver resolver)
+    void DrawReach(Vector3 feet, AttackData attack)
     {
-        float arc = Mathf.Min(resolver.maxAngle * 2f, 360f);
+        float arc = Mathf.Min(attack.halfAngle * 2f, 360f);
         Vector3 forward = transform.forward;
         forward.y = 0f;
         Vector3 from = Quaternion.AngleAxis(-arc / 2f, Vector3.up) * forward.normalized;
 
         Handles.color = new Color(1f, 0.6f, 0f, 0.15f);
-        Handles.DrawSolidArc(feet, Vector3.up, from, arc, resolver.range);
+        Handles.DrawSolidArc(feet, Vector3.up, from, arc, attack.range);
         Handles.color = new Color(1f, 0.6f, 0f);
-        Handles.DrawWireArc(feet, Vector3.up, from, arc, resolver.range);
+        Handles.DrawWireArc(feet, Vector3.up, from, arc, attack.range);
     }
 
     void DrawLockOn(Vector3 feet, LockOnController lockOn)
@@ -60,7 +60,8 @@ public class CombatDebugGizmos : MonoBehaviour
         string text = name;
         if (Application.isPlaying)
         {
-            text += $"\nHP {stats.Health}/{stats.maxHealth}";
+            text += $"\nHP {stats.Health}/{stats.MaxHealth}";
+            if (TryGetComponent(out Stamina stamina)) text += $"\nST {stamina.Current:F0}/{stamina.Max:F0}";
             if (TryGetComponent(out PlayerCombatFSM fsm)) text += "\n" + fsm.State;
             if (stats.Invincible) text += "\nI-FRAMES";
         }

@@ -8,12 +8,16 @@ public enum HitResult { Hit, Dodged, OutOfReach, AlreadyResolved }
 [RequireComponent(typeof(CombatStats))]
 public class HitResolver : MonoBehaviour
 {
-    public float range = 2.5f;
-    public float maxAngle = 60f; // either side of forward
-    public float damageVariance = 0.1f;
+    public WeaponData weapon;
+    public AttackData attack; // one attack per character for now
+    public float strengthScaling = 0.03f; // k in the damage formula
+    public float damageVariance = 0.1f;   // 0.1 = random 0.9–1.1
+    public float critMultiplier = 1.5f;
 
     CombatStats stats;
     bool hitResolved;
+    int hitCount; // for checking the crit rate
+    int critCount;
 
     void Awake()
     {
@@ -36,7 +40,7 @@ public class HitResolver : MonoBehaviour
         float dist = toTarget.magnitude;
         float angle = Vector3.Angle(transform.forward, toTarget);
 
-        if (dist > range || angle > maxAngle)
+        if (dist > attack.range || angle > attack.halfAngle)
         {
             Debug.Log($"[Hit] {name}, Target: {target.name}: out of reach ({dist:F1}m, {angle:F0} deg)");
             return HitResult.OutOfReach;
@@ -48,12 +52,27 @@ public class HitResolver : MonoBehaviour
             return HitResult.Dodged;
         }
 
-        int baseDamage = Mathf.Max(stats.attackPower - target.defence, 1);
-        float roll = Random.Range(1f - damageVariance, 1f + damageVariance);
-        int damage = Mathf.Max(Mathf.RoundToInt(baseDamage * roll), 1);
+        // damage = WeaponBase × AttackMultiplier × (1 + Strength × k) × 100 / (100 + Defence) × Variance × Crit
+        // only variance and crit are random, whether the hit lands was decided above
+        float strengthTerm = 1f + stats.strength * strengthScaling;
+        float defenceTerm = 100f / (100f + target.defence);
+        float variance = Random.Range(1f - damageVariance, 1f + damageVariance);
+        bool crit = Random.value < stats.CritChance;
+        float critTerm = crit ? critMultiplier : 1f;
+
+        float raw = weapon.weaponBase * attack.attackMultiplier * strengthTerm * defenceTerm * variance * critTerm;
+        int damage = Mathf.Max(Mathf.RoundToInt(raw), 1);
+
+        hitCount++;
+        if (crit) critCount++;
         target.TakeDamage(damage);
 
-        Debug.Log($"[Hit] {name}, Target: {target.name}: HIT {damage}, {target.name} HP {target.Health}/{target.maxHealth}");
+        Debug.Log($"[Hit] {name}, Target: {target.name}: HIT {damage}{(crit ? " CRIT" : "")}, {target.name} HP {target.Health}/{target.MaxHealth}\n" +
+            $"[Dmg] base {weapon.weaponBase} × mult {attack.attackMultiplier:F2}" +
+            $" × str (1 + {stats.strength} × {strengthScaling}) = {strengthTerm:F4}" +
+            $" × def 100/(100 + {target.defence}) = {defenceTerm:F4}" +
+            $" × var {variance:F4} × crit {critTerm:F2} = {raw:F3} → {damage}" +
+            $" | crits {critCount}/{hitCount} ({(float)critCount / hitCount:P0}, chance {stats.CritChance:P0})");
         return HitResult.Hit;
     }
 }
