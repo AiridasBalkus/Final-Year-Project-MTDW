@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f66e803b1d0490040b45ee08d23af0e2, type: 3}
   m_Name: Dummy_Swing
   m_EditorClassIdentifier: Assembly-CSharp::AttackData
-  range: 2.5
+  range: 3.5
   halfAngle: 180
   attackMultiplier: 1
   staminaCost: 0

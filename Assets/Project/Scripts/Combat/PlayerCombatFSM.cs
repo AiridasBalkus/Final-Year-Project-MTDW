@@ -49,7 +49,7 @@ public class PlayerCombatFSM : MonoBehaviour
     {
         input.AttackPressed += OnAttackPressed;
         input.DodgePressed += OnDodgePressed;
-        stats.Damaged += OnDamaged;
+        stats.PoiseDamaged += OnPoiseDamaged;
         stats.Died += OnDied;
     }
 
@@ -57,7 +57,7 @@ public class PlayerCombatFSM : MonoBehaviour
     {
         input.AttackPressed -= OnAttackPressed;
         input.DodgePressed -= OnDodgePressed;
-        stats.Damaged -= OnDamaged;
+        stats.PoiseDamaged -= OnPoiseDamaged;
         stats.Died -= OnDied;
     }
 
@@ -128,6 +128,7 @@ public class PlayerCombatFSM : MonoBehaviour
 
         locomotion.MovementEnabled = next == CombatState.Locomotion;
         locomotion.StraightRootMotion = next == CombatState.Dodging;
+        stamina.RegenPaused = next == CombatState.Attacking || next == CombatState.Dodging;
         stats.Invincible = false; // the window only opens through IFrameStart
 
         if (next == CombatState.Attacking)
@@ -167,7 +168,19 @@ public class PlayerCombatFSM : MonoBehaviour
 
     void OnAttackPressed() => Enqueue(CombatEventType.AttackPressed);
     void OnDodgePressed() => Enqueue(CombatEventType.DodgePressed);
-    void OnDamaged(int amount) => Enqueue(CombatEventType.HitReceived);
+    // only a hit that breaks poise interrupts, anything else just deals damage
+    void OnPoiseDamaged(bool broke)
+    {
+        if (broke)
+        {
+            Log("poise broken");
+            Enqueue(CombatEventType.HitReceived);
+        }
+        else
+        {
+            Log($"hit absorbed by poise, no interrupt ({State})");
+        }
+    }
 
     void OnDied()
     {

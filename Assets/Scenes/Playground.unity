@@ -44378,6 +44378,9 @@ MonoBehaviour:
   staminaPerEndurance: 5
   critBase: 0
   critPerPrecision: 0.01
+  poiseBase: 17
+  poisePerPoint: 0.8
+  poiseResetDelay: 3
 --- !u!114 &1405019762
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -48143,6 +48146,9 @@ MonoBehaviour:
   staminaPerEndurance: 5
   critBase: 0
   critPerPrecision: 0.01
+  poiseBase: 0
+  poisePerPoint: 0.8
+  poiseResetDelay: 3
 --- !u!114 &1871987444
 MonoBehaviour:
   m_ObjectHideFlags: 0

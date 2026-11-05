@@ -62,6 +62,7 @@ public class CombatDebugGizmos : MonoBehaviour
         {
             text += $"\nHP {stats.Health}/{stats.MaxHealth}";
             if (TryGetComponent(out Stamina stamina)) text += $"\nST {stamina.Current:F0}/{stamina.Max:F0}";
+            text += $"\nPoise {stats.CurrentPoise:F0}/{stats.MaxPoise:F0}";
             if (TryGetComponent(out PlayerCombatFSM fsm)) text += "\n" + fsm.State;
             if (stats.Invincible) text += "\nI-FRAMES";
         }

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public enum HitResult { Hit, Dodged, OutOfReach, AlreadyResolved }
+public enum HitResult { Hit, HitPoiseBroken, Dodged, OutOfReach, AlreadyResolved }
 
 // Decides if a swing lands. No hitboxes - this gets called from the AttackHit
 // animation event (or the dummy's timer). Connecting is deterministic:
@@ -67,12 +67,19 @@ public class HitResolver : MonoBehaviour
         if (crit) critCount++;
         target.TakeDamage(damage);
 
-        Debug.Log($"[Hit] {name}, Target: {target.name}: HIT {damage}{(crit ? " CRIT" : "")}, {target.name} HP {target.Health}/{target.MaxHealth}\n" +
+        // poise after damage, no randomness
+        float poiseBefore = target.CurrentPoise;
+        bool broke = target.TakePoiseDamage(attack.poiseDamage);
+        string poise = broke
+            ? $"poise {poiseBefore:F0} - {attack.poiseDamage:F0} → BROKEN (reset to {target.MaxPoise:F0})"
+            : $"poise {poiseBefore:F0} - {attack.poiseDamage:F0} → {target.CurrentPoise:F0}/{target.MaxPoise:F0}";
+
+        Debug.Log($"[Hit] {name}, Target: {target.name}: HIT {damage}{(crit ? " CRIT" : "")}, {target.name} HP {target.Health}/{target.MaxHealth}, {poise}\n" +
             $"[Dmg] base {weapon.weaponBase} × mult {attack.attackMultiplier:F2}" +
             $" × str (1 + {stats.strength} × {strengthScaling}) = {strengthTerm:F4}" +
             $" × def 100/(100 + {target.defence}) = {defenceTerm:F4}" +
             $" × var {variance:F4} × crit {critTerm:F2} = {raw:F3} → {damage}" +
             $" | crits {critCount}/{hitCount} ({(float)critCount / hitCount:P0}, chance {stats.CritChance:P0})");
-        return HitResult.Hit;
+        return broke ? HitResult.HitPoiseBroken : HitResult.Hit;
     }
 }
