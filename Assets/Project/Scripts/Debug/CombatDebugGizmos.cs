@@ -10,6 +10,7 @@ public class CombatDebugGizmos : MonoBehaviour
     public bool showReach = true;
     public bool showLabel = true;
     public bool showLockOn = true;
+    public bool showEnemyRanges = true;
     public float labelHeight = 2.2f;
 
 
@@ -24,6 +25,7 @@ public class CombatDebugGizmos : MonoBehaviour
 
         if (showReach && resolver != null && resolver.attack != null) DrawReach(feet, resolver.attack);
         if (showLockOn && lockOn != null) DrawLockOn(feet, lockOn);
+        if (showEnemyRanges && TryGetComponent(out EnemyBrain brain) && brain.config != null) DrawEnemyRanges(feet, brain);
         if (showLabel && stats != null) DrawLabel(stats);
     }
 
@@ -38,6 +40,29 @@ public class CombatDebugGizmos : MonoBehaviour
         Handles.DrawSolidArc(feet, Vector3.up, from, arc, attack.range);
         Handles.color = new Color(1f, 0.6f, 0f);
         Handles.DrawWireArc(feet, Vector3.up, from, arc, attack.range);
+    }
+
+    // detection cone, lose-track ring, and leash ring around spawn
+    void DrawEnemyRanges(Vector3 feet, EnemyBrain brain)
+    {
+        EnemyConfig config = brain.config;
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        Vector3 from = Quaternion.AngleAxis(-config.viewAngle, Vector3.up) * forward.normalized;
+
+        Handles.color = new Color(1f, 0.9f, 0f, 0.08f);
+        Handles.DrawSolidArc(feet, Vector3.up, from, config.viewAngle * 2f, config.detectionRange);
+        Handles.color = new Color(1f, 0.9f, 0f);
+        Handles.DrawWireArc(feet, Vector3.up, from, config.viewAngle * 2f, config.detectionRange);
+
+        Handles.color = new Color(1f, 0.5f, 0f);
+        Handles.DrawWireDisc(feet, Vector3.up, config.loseTrackRange);
+
+        Vector3 spawn = Application.isPlaying ? brain.SpawnPoint : transform.position;
+        spawn.y = feet.y;
+        Handles.color = Color.magenta;
+        Handles.DrawWireDisc(spawn, Vector3.up, config.leashDistance);
+        Handles.DrawWireDisc(spawn, Vector3.up, 0.3f);
     }
 
     void DrawLockOn(Vector3 feet, LockOnController lockOn)
@@ -63,6 +88,7 @@ public class CombatDebugGizmos : MonoBehaviour
             text += $"\nHP {stats.Health}/{stats.MaxHealth}";
             if (TryGetComponent(out Stamina stamina)) text += $"\nST {stamina.Current:F0}/{stamina.Max:F0}";
             text += $"\nPoise {stats.CurrentPoise:F0}/{stats.MaxPoise:F0}";
+            if (TryGetComponent(out EnemyBrain brain)) text += "\n" + brain.StatePath;
             if (TryGetComponent(out PlayerCombatFSM fsm)) text += "\n" + fsm.State;
             if (stats.Invincible) text += "\nI-FRAMES";
         }

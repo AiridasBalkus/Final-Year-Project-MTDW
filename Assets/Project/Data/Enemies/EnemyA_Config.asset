@@ -1,0 +1,50 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fe5db49a4ad0074696ab2abc0823437, type: 3}
+  m_Name: EnemyA_Config
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyConfig
+  detectionRange: 10
+  viewAngle: 60
+  alertTime: 0.6
+  loseTrackRange: 18
+  leashDistance: 20
+  provokedLeashGrace: 5
+  reaggroMargin: 5
+  lineOfSightMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  eyeHeight: 1.6
+  targetHeight: 1
+  patrolSpeed: 1
+  chaseSpeed: 3
+  repositionSpeed: 1
+  returnSpeed: 1
+  turnSpeed: 360
+  patrolWaitTime: 2
+  arriveDistance: 0.5
+  attacks:
+  - attack: {fileID: 11400000, guid: dc1c0a19bf0a444428b41bad3e6b8a5b, type: 2}
+    weight: 3
+    cooldown: 1.5
+    animatorId: 0
+  - attack: {fileID: 11400000, guid: 290dd6f70de77ab419d8d7be09daf03f, type: 2}
+    weight: 1
+    cooldown: 4
+    animatorId: 1
+  combatRangeMargin: 1
+  preferredDistance: 1.8
+  minDistance: 1.3
+  reachBuffer: 0.4
+  repositionTimeMin: 0.5
+  repositionTimeMax: 1.5
+  recoverTime: 0.8
+  staggerTime: 1.5

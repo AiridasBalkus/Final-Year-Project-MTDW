@@ -29,6 +29,12 @@ public class HitResolver : MonoBehaviour
         hitResolved = false;
     }
 
+    public void BeginSwing(AttackData attackData)
+    {
+        attack = attackData;
+        BeginSwing();
+    }
+
     public HitResult Resolve(CombatStats target)
     {
         // one hit per swing
@@ -70,8 +76,8 @@ public class HitResolver : MonoBehaviour
         // poise after damage, no randomness
         float poiseBefore = target.CurrentPoise;
         bool broke = target.TakePoiseDamage(attack.poiseDamage);
-        string poise = broke
-            ? $"poise {poiseBefore:F0} - {attack.poiseDamage:F0} → BROKEN (reset to {target.MaxPoise:F0})"
+        string poise = target.IsDead ? "KILLED"
+            : broke ? $"poise {poiseBefore:F0} - {attack.poiseDamage:F0} → BROKEN (reset to {target.MaxPoise:F0})"
             : $"poise {poiseBefore:F0} - {attack.poiseDamage:F0} → {target.CurrentPoise:F0}/{target.MaxPoise:F0}";
 
         Debug.Log($"[Hit] {name}, Target: {target.name}: HIT {damage}{(crit ? " CRIT" : "")}, {target.name} HP {target.Health}/{target.MaxHealth}, {poise}\n" +
