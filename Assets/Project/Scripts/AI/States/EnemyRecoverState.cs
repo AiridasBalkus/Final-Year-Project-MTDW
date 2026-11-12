@@ -15,7 +15,8 @@ public class EnemyRecoverState : State
 
     public override void Enter()
     {
-        doneAt = Time.time + brain.config.recoverTime;
+        // scales with the swing's speed like the rest of the attack
+        doneAt = Time.time + brain.config.recoverTime / combat.Attack.Speed;
     }
 
     public override void Tick()

@@ -2,6 +2,7 @@ using UnityEngine;
 
 // Enemy perception and leash: view cone, Alert then Chase, lose-track and Return home, leash break,
 // noticing the player again on the way home, and fighting back when hit while returning.
+// Also its chase speed and sliding, a running player pulling away, and hearing (walk vs run behind it).
 public class EnemyPerceptionLeashTest : PlayModeTest
 {
     public override string Name => "EnemyPerceptionLeash";
@@ -9,11 +10,15 @@ public class EnemyPerceptionLeashTest : PlayModeTest
 
     static readonly Vector3 FarAway = new Vector3(28f, 0f, -8f);
     static readonly Vector3 AwayFromSpawn = new Vector3(0.6f, 0f, -0.8f); // towards open floor
+    static readonly Vector3 EscapeDir = new Vector3(-0.6f, 0f, -0.8f);    // open floor, clear of the dummy
+    static readonly System.Reflection.PropertyInfo MoveProp = typeof(PlayerInputHandler).GetProperty("Move");
 
     int step;
     float stepStart;
-    bool placed, alertedWhileBehind, provoked, leashedDuringGrace;
-    float alertAt = -1f, provokedAt = -1f;
+    bool placed, alertedWhileBehind, provoked, leashedDuringGrace, heard, noticedWhileWalking;
+    float alertAt = -1f, provokedAt = -1f, chaseSince = -1f;
+    float chaseSpeedSum, chaseClipSpeedSum, escapeStart = -1f, escapeStartGap;
+    int chaseSamples;
     string lastPath = "";
 
     protected override void Setup()
@@ -25,6 +30,7 @@ public class EnemyPerceptionLeashTest : PlayModeTest
     {
         if (line.StartsWith("[Enemy]") || line.StartsWith("[Hit] Player")) Log(line);
         if (line.Contains("provoked while returning")) provoked = true;
+        if (line.Contains("heard the player")) heard = true;
     }
 
     void Next(string title)
@@ -44,6 +50,7 @@ public class EnemyPerceptionLeashTest : PlayModeTest
         {
             Log($"STATE {lastPath} -> {path}  (dist {Enemy.DistanceToTarget:F1}, fromSpawn {Enemy.DistanceFromSpawn:F1})");
             if (path == "Alert") alertAt = now;
+            if (path == "Chase") chaseSince = now;
             lastPath = path;
         }
         if (PlayerStats.Health < 50) PlayerStats.RestoreFullHealth();
@@ -100,9 +107,28 @@ public class EnemyPerceptionLeashTest : PlayModeTest
                 break;
 
             case 5:
-                if (path == "Chase") Teleport(enemyPos + AwayFromSpawn * 4f);
+                if (path == "Chase")
+                {
+                    Teleport(enemyPos + AwayFromSpawn * 4f);
+                    // a straight run once it's up to speed
+                    if (now - chaseSince > 1f)
+                    {
+                        float speed = Enemy.Motor.Velocity.magnitude;
+                        chaseSpeedSum += speed;
+                        Vector3 clip = Enemy.Animator.velocity;
+                        clip.y = 0f;
+                        chaseClipSpeedSum += Vector3.Dot(clip, Enemy.Motor.Velocity.normalized); // along the run, the clips sway sideways
+                        chaseSamples++;
+                    }
+                }
                 if (path == "Return")
                 {
+                    float speed = chaseSpeedSum / Mathf.Max(chaseSamples, 1);
+                    float ratio = chaseClipSpeedSum / Mathf.Max(chaseSpeedSum, 0.01f);
+                    Check($"chases at its own rolled run speed {Enemy.RunSpeed:F2} m/s ({speed:F2}), inside {config.runSpeedMin}-{config.runSpeedMax}",
+                        chaseSamples > 0 && Mathf.Abs(speed - Enemy.RunSpeed) <= Enemy.RunSpeed * 0.1f &&
+                        Enemy.RunSpeed >= config.runSpeedMin && Enemy.RunSpeed <= config.runSpeedMax);
+                    Check($"run animation matches the speed, no sliding (clip/actual {ratio:F2})", ratio > 0.85f && ratio < 1.15f);
                     Check($"leash breaks at {config.leashDistance} m from spawn ({Enemy.DistanceFromSpawn:F1} m)", Mathf.Abs(Enemy.DistanceFromSpawn - config.leashDistance) < 0.5f);
                     Next("player waits on its way home");
                 }
@@ -159,7 +185,71 @@ public class EnemyPerceptionLeashTest : PlayModeTest
                 if (path == "Idle")
                 {
                     Check("walks home again after losing track", Enemy.DistanceFromSpawn <= config.arriveDistance + 0.1f);
-                    return true;
+                    Teleport(enemyPos + Enemy.transform.forward * 5f);
+                    Next("disengage: once it chases, the player runs away");
+                }
+                break;
+
+            case 10:
+                if (escapeStart < 0f && path == "Chase" && now - chaseSince > 0.5f)
+                {
+                    escapeStart = now;
+                    escapeStartGap = Enemy.DistanceToTarget;
+                    Fsm.input.enabled = false;
+                }
+                if (escapeStart > 0f)
+                {
+                    // camera-relative stick that points along EscapeDir
+                    Transform cam = Fsm.locomotion.cameraTransform;
+                    Vector3 right = cam.right, forward = cam.forward;
+                    right.y = forward.y = 0f;
+                    MoveProp.SetValue(Fsm.input, new Vector2(Vector3.Dot(EscapeDir, right.normalized), Vector3.Dot(EscapeDir, forward.normalized)).normalized);
+                    if (now - escapeStart >= 3f)
+                    {
+                        float gap = Enemy.DistanceToTarget;
+                        Check($"a running player ({Fsm.locomotion.config.runSpeed} m/s) pulls away from its {Enemy.RunSpeed:F2} m/s chase (gap {escapeStartGap:F1} -> {gap:F1} m)", gap > escapeStartGap + 0.15f);
+                        MoveProp.SetValue(Fsm.input, Vector2.zero);
+                        Teleport(FarAway);
+                        Next("hearing: once it's home, walk past 4.5 m behind it");
+                    }
+                }
+                break;
+
+            case 11: // walk behind, too quiet to hear
+            case 12: // run behind, heard
+                bool running = step == 12;
+                if (!placed)
+                {
+                    if (path != "Idle") break;
+                    placed = true;
+                    stepStart = now;
+                    heard = false;
+                    Vector3 behind = Enemy.transform.position - Enemy.transform.forward * 4.5f - Enemy.transform.right * (running ? 3.5f : 1.4f);
+                    Teleport(behind, Enemy.transform.right);
+                    break;
+                }
+                // camera-relative stick along the enemy's right, past its back
+                Transform camera = Fsm.locomotion.cameraTransform;
+                Vector3 camRight = camera.right, camForward = camera.forward;
+                camRight.y = camForward.y = 0f;
+                Vector3 across = Enemy.transform.right;
+                Vector2 stick = new Vector2(Vector3.Dot(across, camRight.normalized), Vector3.Dot(across, camForward.normalized)).normalized;
+                MoveProp.SetValue(Fsm.input, stick * (running ? 1f : 0.3f));
+                if (!running && path != "Idle") noticedWhileWalking = true;
+                if (inStep > 2f)
+                {
+                    MoveProp.SetValue(Fsm.input, Vector2.zero);
+                    if (!running)
+                    {
+                        Check($"doesn't hear the player walking 4.5 m behind it (walk noise {Fsm.GetComponent<PlayerNoise>().walkRadius} m)", !noticedWhileWalking);
+                        Teleport(FarAway);
+                        Next("run past 4.5 m behind it");
+                    }
+                    else
+                    {
+                        Check($"hears the player running 4.5 m behind it (run noise {Fsm.GetComponent<PlayerNoise>().runRadius} m) and turns to Alert", heard && path != "Idle");
+                        return true;
+                    }
                 }
                 break;
         }

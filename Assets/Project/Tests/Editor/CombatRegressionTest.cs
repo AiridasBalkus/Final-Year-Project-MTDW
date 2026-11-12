@@ -1,7 +1,8 @@
 using UnityEngine;
 
 // Player combat against the TestDummy: input buffering, i-frame timing, stamina gating and regen,
-// hit interrupts, poise absorb/break, dummy stagger, poise reset. Enemies are switched off.
+// hit interrupts, poise absorb/break, dummy stagger, poise reset. Enemies are switched off,
+// and the player's swing is pinned to speed 1 (speed variation is covered by EnemyCombatDodge).
 public class CombatRegressionTest : PlayModeTest
 {
     public override string Name => "CombatRegression";
@@ -31,6 +32,11 @@ public class CombatRegressionTest : PlayModeTest
     {
         dummyStats = Dummy.GetComponent<CombatStats>();
         Dummy.enabled = false;
+        // the combo timing in phase 9 reuses one measured swing, so pin the swing speed to 1x
+        // (a play-mode copy, the asset isn't touched)
+        HitResolver resolver = Fsm.GetComponent<HitResolver>();
+        resolver.attack = Object.Instantiate(resolver.attack);
+        resolver.attack.speedMin = resolver.attack.speedMax = 1f;
         foreach (EnemyBrain enemy in Object.FindObjectsByType<EnemyBrain>())
             enemy.gameObject.SetActive(false);
     }

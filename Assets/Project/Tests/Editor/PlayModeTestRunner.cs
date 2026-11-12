@@ -16,10 +16,16 @@ public static class PlayModeTestRunner
     }
 
     [MenuItem(Menu + "Run All", priority = 0)]
-    static void RunAll() => Queue("CombatRegression", "EnemyPerceptionLeash", "EnemyCombatDodge", "EnemyStaggerDeath");
+    static void RunAll() => Queue("PlayerLocomotion", "CombatRegression", "BlockHeal", "EnemyPerceptionLeash", "EnemyCombatDodge", "EnemyStaggerDeath");
+
+    [MenuItem(Menu + "Player Locomotion", priority = 19)]
+    static void RunLocomotion() => Queue("PlayerLocomotion");
 
     [MenuItem(Menu + "Combat Regression", priority = 20)]
     static void RunCombat() => Queue("CombatRegression");
+
+    [MenuItem(Menu + "Block and Heal", priority = 20)]
+    static void RunBlockHeal() => Queue("BlockHeal");
 
     [MenuItem(Menu + "Enemy Perception and Leash", priority = 21)]
     static void RunPerception() => Queue("EnemyPerceptionLeash");
@@ -41,7 +47,9 @@ public static class PlayModeTestRunner
     {
         switch (name)
         {
+            case "PlayerLocomotion": return new PlayerLocomotionTest();
             case "CombatRegression": return new CombatRegressionTest();
+            case "BlockHeal": return new BlockHealTest();
             case "EnemyPerceptionLeash": return new EnemyPerceptionLeashTest();
             case "EnemyCombatDodge": return new EnemyCombatDodgeTest();
             case "EnemyStaggerDeath": return new EnemyStaggerDeathTest();

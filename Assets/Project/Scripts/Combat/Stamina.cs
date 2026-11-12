@@ -12,6 +12,7 @@ public class Stamina : MonoBehaviour
     public float Max => stats.MaxStamina;
     public bool CanAct => Current > 0f;
     public bool RegenPaused { get; set; } // set by the combat FSM while attacking/dodging
+    public float RegenMultiplier { get; set; } = 1f; // set by the combat FSM, slower while blocking
 
     CombatStats stats;
     float lastSpendTime;
@@ -27,7 +28,7 @@ public class Stamina : MonoBehaviour
         // keep pushing the delay back while paused, so it counts from the end of the action
         if (RegenPaused) lastSpendTime = Time.time;
         if (Time.time - lastSpendTime < regenDelay) return;
-        Current = Mathf.Min(Current + regenRate * Time.deltaTime, Max);
+        Current = Mathf.Min(Current + regenRate * RegenMultiplier * Time.deltaTime, Max);
     }
 
     public void Spend(float amount)

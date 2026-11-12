@@ -74,6 +74,12 @@ public class CombatStats : MonoBehaviour
         return broke;
     }
 
+    public void Heal(int amount)
+    {
+        if (IsDead) return;
+        Health = Mathf.Min(Health + amount, MaxHealth);
+    }
+
     public void RestoreFullHealth()
     {
         Health = MaxHealth;

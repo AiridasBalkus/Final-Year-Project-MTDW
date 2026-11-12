@@ -8,7 +8,7 @@
 >
 > Course: BSc (Hons) Applied Computing in Game Development
 >
-> Supervisor: Giuseppe “Pino” De Francesco
+> Supervisor: Giuseppe "Pino" De Francesco
 >
 > Submission Date: \[DD/MM/YYYY\]
 
@@ -141,11 +141,12 @@
 
 # Revision History
 
-| Date       | Version | Description                                                                                                                                                                                           | Author         |
-|------------|---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
-| 15/10/2026 | 0.1     | Template created from the university GDD outline and supervisor template.                                                                                                                             | Airidas Balkus |
-| 15/10/2026 | 0.2     | Some Content Added from my FYP Plan v2, with feedback from the supervisor, scoped reduced, hour budget corrected, engine version corrected, evaluation plan added, references added, AI Usage logged. | Airidas Balkus |
-| 21/10/2026 | 0.3     | Sprint 1: Implementation documented, movement, camera and lock-on, controls, footstep audio and combat model (event- driven state machine with FIFO event queue)                                      | Airidas Balkus |
+| Date       | Version | Description                                                                                                                                                                                                                                                         | Author         |
+|------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------|
+| 15/10/2026 | 0.1     | Template created from the university GDD outline and supervisor template.                                                                                                                                                                                           | Airidas Balkus |
+| 15/10/2026 | 0.2     | Some Content Added from my FYP Plan v2, with feedback from the supervisor, scoped reduced, hour budget corrected, engine version corrected, evaluation plan added, references added, AI Usage logged.                                                               | Airidas Balkus |
+| 21/10/2026 | 0.3     | Sprint 1: Implementation documented, movement, camera and lock-on, controls, footstep audio and combat model (event-driven state machine with FIFO event queue)                                                                                                     | Airidas Balkus |
+| 12/11/2026 | 0.4     | Sprint 2: code-driven movement (supervisor feedback), stats and damage formula, stamina, poise and stagger, block, heal, Enemy A with the hierarchical FSM and perception, automated Play-mode tests. Movement, combat, AI, interface and testing sections written. | Airidas Balkus |
 
 # Purpose of this Document
 
@@ -155,9 +156,9 @@ This game Design Document is the blueprint for Mino The Dark Worlds, a Souls-lik
 
 ***Person responsible:*** Airidas Balkus
 
-***Supervisor:*** Giuseppe “Pino” De Francesco
+***Supervisor:*** Giuseppe "Pino" De Francesco
 
-***Type of Development:*** Game – Final year project vertical slice
+***Type of Development:*** Game - Final year project vertical slice
 
 ***Genre(s):*** Souls-like third-person action RPG
 
@@ -217,14 +218,14 @@ The design is built on three pillars, each expressed as a target player experien
 | Two-phase boss                                                                                      | Core                          |
 | One area plus a boss room, with a checkpoint and enemy reset on death                               | Core                          |
 | HUD, main menu, pause, death and victory screens                                                    | Core                          |
-| Stat upgrades and loot                                                                              | Stretch – only if time allows |
+| Stat upgrades and loot                                                                              | Stretch - only if time allows |
 | Shortcut back to the hub checkpoint                                                                 | Stretch                       |
 | Attack token system for groups                                                                      | Stretch                       |
 | Custom Blender assets, extra weapons                                                                | Stretch                       |
 
 ## 2.3. Genre
 
-Third-person action RPG, Souls-like (in the lineage of FromSoftware’s Dark Souls series).
+Third-person action RPG, Souls-like (in the lineage of FromSoftware's Dark Souls series).
 
 ## 2.4. Target Audience
 
@@ -240,19 +241,19 @@ Dark fantasy with heavy, desaturated tones and warm accents. Two reference direc
 
 <img src="./media/image3.png" style="width:5.2in;height:2.74444in" />
 
-> Figure 1 – Reference direction A [(source: ArtStation.com).](#1211-images)
+> Figure 1 - Reference direction A [(source: ArtStation.com).](#1211-images)
 
 <img src="./media/image4.png" style="width:4.4in;height:1.50972in" />
 
-> Figure 1.1 – Palette extracted from direction A.
+> Figure 1.1 - Palette extracted from direction A.
 >
 > <img src="./media/image5.png" style="width:3in;height:2.975in" />
 >
-> Figure 2 – Reference direction B [(source: ArtStation.com)](#1211-images).
+> Figure 2 - Reference direction B [(source: ArtStation.com)](#1211-images).
 
 <img src="./media/image6.png" style="width:3in;height:2.52361in" />
 
-> Figure 2.1 – Palette for direction B
+> Figure 2.1 - Palette for direction B
 
 ## 2.7. Project Scope
 
@@ -264,13 +265,13 @@ Dark fantasy with heavy, desaturated tones and warm accents. Two reference direc
 | Regular enemy types | 2             | Built on one shared HFSM framework                |
 | Bosses              | 1             | Two phases                                        |
 | NPCs                | 0             |                                                   |
-| Checkpoints         | 1–2           | Hub checkpoint, maybe pre-boss checkpoint         |
+| Checkpoints         | 1-2           | Hub checkpoint, maybe pre-boss checkpoint         |
 | Player stats        | 5             | Vitality, Endurance, Strength, Precision, Poise   |
-| Stat upgrades       | –             | Stretch – only if time allows                     |
+| Stat upgrades       | -             | Stretch - only if time allows                     |
 
 # 3. Unique Selling Points
 
-*Will be updated – either when grey box is done or slice is playable – each point will be demonstrable in the demo video.*
+*Will be updated - either when grey box is done or slice is playable - each point will be demonstrable in the demo video.*
 
 # 4. Gameplay and Mechanics
 
@@ -294,7 +295,26 @@ Dark fantasy with heavy, desaturated tones and warm accents. Two reference direc
 
 #### 4.2.2.1. General Movement
 
+Movement is driven by code. Speeds are set in metres per second in a data asset (Player_Movement) and the character is moved through Unity's CharacterController, which handles collision with the level. The first version used root motion, where the animation clips decided how far the character moved. It was replaced after supervisor feedback so that speed is a design value rather than a property of a clip, and so that different characters do not all move at exactly the same speed.
+
+| **Gait**           | **Input**                            | **Speed** |
+|--------------------|--------------------------------------|-----------|
+| Walk               | Stick pushed less than halfway       | 1.35 m/s  |
+| Run                | Full stick, or any keyboard movement | 3.5 m/s   |
+| Sprint             | Sprint held while moving             | 5.0 m/s   |
+| Strafe (locked on) | Any input while locked on            | 3.0 m/s   |
+
+**No foot sliding.** Every locomotion clip's real speed was measured in Play mode, because Unity's own estimate was wrong for the run clip (2.89 m/s reported, 3.72 m/s real). The blend trees use these measured speeds and are fed the character's actual velocity. Where no blend of clips matches the speed, a playback multiplier speeds the clips up or slows them down. The automated tests measure clip speed against actual speed at 1.00-1.07 for every gait.
+
+**Turning.** Input is camera-relative. Without lock-on, the character always moves the way it faces and slows down into sharp turns, so turning around while sprinting plants and turns instead of sliding sideways.
+
 #### 4.2.2.2. Other Movement
+
+**Lock-on strafing.** While locked on, the character faces the target and can move in any direction at 3.0 m/s, using a strafe clip for every direction.
+
+**Dodge roll.** The roll goes in the direction of the input (or straight ahead without input) and travels 3.13 m in a straight line. The clip supplies the shape of the movement and data supplies the amount: only the clip's forward motion is kept, which removes its sideways drift, and it is scaled by dodgeDistanceScale. The roll always plays at normal speed, so its invincibility window never changes (see 4.2.5.3).
+
+**Enemies** use the same code-driven approach, and each enemy rolls its own speeds when it spawns (see 8.3.2).
 
 ### 4.2.3. Objects
 
@@ -306,22 +326,22 @@ Dark fantasy with heavy, desaturated tones and warm accents. Two reference direc
 
 Combat uses no colliders or physics hitboxes. Every outcome is computed by code triggered by animation events. An animation event is placed at a specific frame of a clip that triggers a computation, and a state machine decides whether that computation is allowed to run.
 
-**Hit resolution:** When an attack reaches its impact frame, an AttackHit event asks the attacker’s HitResolver to resolve that swing against its target. The check run in this order:
+**Hit resolution:** When an attack reaches its impact frame, an AttackHit event asks the attacker's HitResolver to resolve that swing against its target. The checks run in this order:
 
 | **Step** | **Check**                                                                                        | **Result**                           |
 |----------|--------------------------------------------------------------------------------------------------|--------------------------------------|
 | 1        | Has this swing already been resolved? (hitResolved flag, cleared when a swing starts)            | Ignored. A swing can never hit twice |
-| 2        | Is the target within the attack’s range and inside its reach (the arc in front of the attacker)? | If not: out of reach, no effect      |
-| 3        | Is the target inside its doge invincibility window?                                              | Dodge always, with no random roll.   |
+| 2        | Is the target within the attack's range and inside its reach (the arc in front of the attacker)? | If not: out of reach, no effect      |
+| 3        | Is the target inside its dodge invincibility window?                                             | Dodged, always, with no random roll. |
 | 4        | Otherwise                                                                                        | Hit: Damage is applied               |
 
-Whether an attack connects it is deterministic. Probability only affects how much damage a hit deals, and not whether a correctly timed dodge works, as seen in the [Fair and Readable Pillar](#212-design-goals)
+Whether an attack connects is deterministic. Probability only affects how much damage a hit deals, and not whether a correctly timed dodge works, as seen in the [Fair and Readable Pillar](#212-design-goals)
 
-**Player Combat State Machine:** The player’s combat system uses a finite state machine with five states. Attacks and dodges can only start from “Locomotion” state, a hit interrupts every state except if the state is HitReact and or Dead, and each reaction returns through the end event on its clip.
+**Player Combat State Machine:** The player's combat system uses a finite state machine with five states. Attacks and dodges can only start from "Locomotion" state, a hit interrupts every state except if the state is HitReact and or Dead, and each reaction returns through the end event on its clip.
 
 | **State**  | **Entered when**                                      | **Left when**                                                |
 |------------|-------------------------------------------------------|--------------------------------------------------------------|
-| Locomotion | Play starts, or a reaction finish                     | Attack or Dodge pressed; a hit lands                         |
+| Locomotion | Play starts, or a reaction finishes                   | Attack or Dodge pressed; a hit lands                         |
 | Attacking  | Attack pressed in Locomotion                          | AttackEnd event; a hit lands                                 |
 | Dodging    | Dodge pressed in Locomotion                           | DodgeEnd event; a hit lands outside the invincibility window |
 | HitReact   | A hit lands (from any state except HitReact and Dead) | HitReactEnd event                                            |
@@ -343,15 +363,67 @@ Whether an attack connects it is deterministic. Probability only affects how muc
 
 #### 4.2.5.2. Attacks
 
+Each attack is a data asset (AttackData) holding its range, arc, damage multiplier, stamina cost, poise damage, block stamina cost, lunge and speed range. Balancing is done per move rather than per weapon.
+
+| **Attack**              | **Range / arc** | **Multiplier** | **Stamina** | **Poise damage** | **Speed range** |
+|-------------------------|-----------------|----------------|-------------|------------------|-----------------|
+| Player slash            | 2.5 m / +/-60°    | x1.0           | 20          | 10               | 0.95-1.05       |
+| Enemy A slash and heavy | see 5.3.2.2     | -              | from config | -                | 0.9-1.1         |
+
+**Lunge.** Attacks move the same way as the dodge: a clip with forward motion keeps it, scaled by lungeScale. For clips without any motion, a code lunge adds a distance and a curve over part of the swing. The player's slash lunges 0.5 m and stops 1.2 m from the target, so it closes the gap without pushing into the enemy.
+
+**Speed variation.** Every swing rolls a playback speed from its range, so attacks are not all identically timed. The hit event, end, wind-up and recovery all scale with the rolled speed, so the attack stays readable and learnable; measured hit timing is within 0.005 s of the expected time. Speed only changes *when* a hit happens, never *whether* it lands.
+
 #### 4.2.5.3. Defence and Stamina
+
+**Dodge.** The roll costs 15 stamina and carries two animation events, IFrameStart and IFrameEnd, which open an invincibility window from 5% to 67% of the clip (about 0.52 s of the 0.83 s roll). While the window is open the hit equation always returns Dodged; during the roll's start-up and recovery it gives no protection, so timing matters. In testing, 10 of 10 hits inside the window were dodged and 10 of 10 outside it landed.
+
+**Block.** Holding block raises the shield. The player moves at walk speed, and an upper-body animation layer holds the guard pose while the legs keep walking. A hit from an attacker within +/-60° in front is Blocked: the player takes 20% of the damage, pays the attack's block stamina cost and takes no poise damage. Blocking from behind does not work. Stamina regenerates at 0.3x speed while blocking.
+
+**Guard break.** If a blocked hit takes stamina below 0, the guard breaks and the player is staggered for 1.5 s, with a red flash (a normal block flashes white).
+
+**Heal.** The player has 3 heal charges, shown as pips on the HUD. A heal costs 15 stamina and restores 40 health at a HealApply animation event about 0.9 s in. The charge is spent when the heal starts, so if a poise break interrupts the heal before HealApply, the charge is lost. The player moves at walk speed while healing, and a heal is refused with no charges or no stamina. Charges will refill at checkpoints.
+
+**Stamina.** Attacking, dodging, blocking hits and healing all cost stamina. An action can start with any stamina above 0, so one action can take it negative; at 0 or below, actions are refused. Stamina regenerates at 30 per second, starting 1 second after the current attack or dodge ends; regeneration is paused while an action is in progress.
 
 #### 4.2.5.4. Damage Calculation
 
+*Damage = WeaponBase x AttackMultiplier x (1 + Strength x k) x 100 / (100 + Defence) x Variance x Crit*
+
+| **Term**              | **Meaning**                                                                                 |
+|-----------------------|---------------------------------------------------------------------------------------------|
+| WeaponBase            | The weapon's base damage (sword: 20).                                                       |
+| AttackMultiplier      | The move's multiplier from its AttackData (slash: x1.0).                                    |
+| (1 + Strength x k)    | Strength scaling, with k = 0.03 (see 4.2.6).                                                |
+| 100 / (100 + Defence) | Diminishing returns: 100 Defence halves damage, and Defence never makes a character immune. |
+| Variance              | Random value between 0.9 and 1.1.                                                           |
+| Crit                  | x1.5 when the crit roll succeeds, otherwise x1. Crit chance comes from Precision.           |
+
+The result is rounded with a minimum of 1. At default stats (Strength 10, Defence 5) the player's slash deals about 25 damage, so the test dummy dies in 4 hits. Every hit logs each term of the formula so the numbers can be checked by hand.
+
 #### 4.2.5.5. Hit Reactions and Poise
+
+Every character has a hidden poise value: max poise = base + 0.8 x Poise stat, so the player has 8 at default stats. Each hit that lands reduces poise by the attack's poise damage. Only a hit that breaks poise interrupts: the player goes into HitReact (see 4.2.5.1), and an enemy is staggered, which cancels any wind-up in progress. A hit that does not break poise deals damage without interrupting. Poise snaps back to full after 3 seconds without poise damage, and also resets when it breaks. Nothing in poise is random.
+
+At default stats one enemy hit staggers the player, while Enemy A staggers on the third player slash. Hyper armour for some heavy enemy attacks is planned.
 
 #### 4.2.5.6. Death and Respawn
 
+When the player's health reaches 0, the Died event moves the state machine straight to Dead and clears the event queue, so no buffered input plays after death. When an enemy dies, its body falls forward and its lock-on target is disabled, so the player's lock-on drops automatically. Respawning at the last checkpoint with regular enemies reset (see 2.5) is still to be built.
+
 ### 4.2.6. Statistics System
+
+Each stat ranges from 10 to 20. The derived values are linear, base + per point x stat, with both numbers tunable in the inspector:
+
+| **Stat**  | **Effect**                               | **At 10** | **At 20** |
+|-----------|------------------------------------------|-----------|-----------|
+| Vitality  | Max health = 50 + 5 x Vitality           | 100       | 150       |
+| Endurance | Max stamina = 50 + 5 x Endurance         | 100       | 150       |
+| Strength  | Damage term 1 + Strength x k             | x1.3      | x1.6      |
+| Precision | Crit chance = 1% x Precision (crit x1.5) | 10%       | 20%       |
+| Poise     | Max poise = base + 0.8 x Poise           | 8         | 16        |
+
+**Strength constant k = 0.03.** Strength starts at 10, so a base character already deals x1.3 damage and maximum Strength deals x1.6. Each point above the minimum adds 3 percentage points, so k sets how much investing in Strength matters. It was chosen so that maxing Strength gives about 23% more damage than the base (1.6 / 1.3).
 
 ### 4.2.7. Economy
 
@@ -435,9 +507,15 @@ Whether an attack connects it is deterministic. Probability only affects how muc
 
 #### 5.3.2.1 Look
 
+Greybox placeholder: the player's Mixamo character tinted a different colour, holding a greybox sword whose blade glows during attack wind-ups.
+
 #### 5.3.2.2 Attacks
 
+Enemy A has two attacks, a slash and a heavy slash, chosen by weighted random selection (see 8.1.3). Each attack glows orange during its wind-up, and the heavy slash moves forward with its clip's motion. Each swing's speed varies between 0.9x and 1.1x, with the wind-up and hit timing scaled to match.
+
 #### 5.3.2.3 Statistics
+
+Each Enemy A rolls its own walk speed (1.15-1.55 m/s) and run speed (3.0-3.4 m/s) when it spawns, slightly slower than the player's run so the player can disengage. It staggers on the third player slash and recovers for 0.8 s after each attack. All values live in its config asset, EnemyA_Config.
 
 ### 5.3.3 Enemy B 
 
@@ -459,7 +537,7 @@ Whether an attack connects it is deterministic. Probability only affects how muc
 
 # 6. Levels
 
-## 6.1 Level 1 – The Area
+## 6.1 Level 1 - The Area
 
 ### 6.1.1 Synopsis
 
@@ -485,11 +563,21 @@ Whether an attack connects it is deterministic. Probability only affects how muc
 
 ### 7.1.1 HUD
 
+The HUD sits in the top-left: a red health bar, a green stamina bar below it, and pips for the remaining heal charges. Poise is hidden from the player.
+
 ### 7.1.2 Menus
 
 ### 7.1.3 Rendering System
 
 ### 7.1.4 Camera
+
+The camera is built with Cinemachine 3 and uses two cameras: a free-look orbit camera driven by the Look input, and a lock-on camera that frames both the player and the target. Locking on raises the lock-on camera's priority and Cinemachine blends between them.
+
+| **Lock-on rule** | **Behaviour**                                                                                                                                             |
+|------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Acquire          | Targets within 20 m, inside 60° of the camera's forward direction and in line of sight. The one closest to the centre of the screen is chosen.            |
+| Release          | Pressing lock-on again, the target dying, or the target moving beyond 25 m. The gap between 20 m and 25 m stops the lock flickering at the edge of range. |
+| Switch           | A stick flick or a fast mouse swipe, with a 0.5 s cooldown. The nearest target on screen in that direction is chosen.                                     |
 
 ### 7.1.4.1 Positioning
 
@@ -499,11 +587,26 @@ Whether an attack connects it is deterministic. Probability only affects how muc
 
 ## 7.2 Control System
 
+Controls use the Input System with one Input Actions asset. A single PlayerInputHandler reads input and passes it to the rest of the game, so no gameplay script reads devices directly. Keyboard and mouse and gamepad are both supported.
+
+| **Action**   | **Keyboard and mouse** | **Gamepad**   |
+|--------------|------------------------|---------------|
+| Move         | WASD                   | Left stick    |
+| Look         | Mouse                  | Right stick   |
+| Sprint       | \[confirm\]            | \[confirm\]   |
+| Lock-on      | \[confirm\]            | \[confirm\]   |
+| Attack       | Left mouse button      | West button   |
+| Dodge        | Space                  | East button   |
+| Block (hold) | Right mouse button     | Left shoulder |
+| Heal         | R                      | North button  |
+
 ## 7.3 Audio
 
 ## 7.4 Music
 
 ## 7.5 Sound Effects
+
+**Footsteps.** OnFootstep animation events sit on every foot contact in the locomotion and strafe clips. Events from clips with less than half the blend weight are ignored, so blend trees do not play double footsteps. Each step plays a random clip with slight pitch and volume variation and never repeats the same clip twice in a row.
 
 ## 7.6 Help System
 
@@ -513,9 +616,25 @@ Whether an attack connects it is deterministic. Probability only affects how muc
 
 ### 8.1.1 Architecture
 
+Enemy AI uses a small generic hierarchical finite state machine: states can contain their own sub-state machines, so behaviour like "Combat" is broken into smaller states without one large switch statement. All behaviour values (ranges, speeds, attack list, weights, cooldowns, recovery time) live in a config asset, so Enemy B is planned as mostly a new config and a prefab variant. Enemies reuse the player's combat systems: CombatStats, HitResolver, AttackData, poise and the lock-on target.
+
 ### 8.1.2 States and Transitions
 
+| **State**          | **Behaviour**                                            | **Leaves when**                                                                |
+|--------------------|----------------------------------------------------------|--------------------------------------------------------------------------------|
+| Idle / Patrol      | Waits or patrols near its spawn point                    | Notices the player                                                             |
+| Alert              | Turns towards the player                                 | Moves to Chase                                                                 |
+| Chase              | Follows a NavMesh path at its rolled run speed           | In attack range (Combat); player beyond 18 m or enemy 20 m from spawn (Return) |
+| Combat: Reposition | Holds 1.3-1.8 m from the player, strafing or backing off | An attack is chosen                                                            |
+| Combat: Attack     | Wind-up with orange glow, then the swing                 | The attack ends                                                                |
+| Combat: Recover    | 0.8 s recovery window, open to punishment                | Back to Reposition                                                             |
+| Staggered          | Poise broken; the current attack is cancelled            | Stagger ends                                                                   |
+| Return             | Walks back to its spawn point; fights back if hit        | Arrives home, or notices the player again 5 m back inside the leash            |
+| Dead               | Body falls; lock-on target disabled                      | -                                                                              |
+
 ### 8.1.3 Attack Selection
+
+In Reposition, the enemy picks an attack by weighted random choice from the attacks that are off cooldown and that it has enough stamina for. Each attack's weight and cooldown are set in the config, so different enemy types can favour different attacks without code changes.
 
 ### 8.1.4 Group Coordination
 
@@ -525,7 +644,11 @@ Whether an attack connects it is deterministic. Probability only affects how muc
 
 ### 8.3.1 Player and Collision Detection
 
+Enemies notice the player by sight or by hearing. Sight covers 10 m in a 60° cone either side of the enemy's forward direction and needs line of sight. Hearing depends on how the player moves: walking can be heard within 2 m, running within 7 m and sprinting within 12 m, so the player can sneak up behind an enemy by walking. Once chasing, an enemy gives up if the player is more than 18 m away or it is more than 20 m from its spawn point.
+
 ### 8.3.2 Pathfinding
+
+Pathfinding uses Unity's AI Navigation package with a baked NavMesh. The NavMeshAgent only plans the path; code moves the enemy along it at the speeds it rolled on spawn and keeps it on the mesh, using the same no-sliding blend setup as the player.
 
 # 9. Technical
 
@@ -534,6 +657,8 @@ Whether an attack connects it is deterministic. Probability only affects how muc
 ## 9.2 Development Hardware and Software
 
 ## 9.3 Development Procedures and Standards
+
+Work is done on feature branches on GitHub, and I make all commits myself after reviewing the changes. AI-assisted work is done with Claude Code, constrained by a CLAUDE.md file in the project that records the tech stack, the design rules (no colliders, event-driven combat, deterministic hits) and boundaries (no package installs or changes outside the project folder without asking). Each task starts with a plan that I review before any code is written, and ends with automated Play-mode tests (see 11.6.1).
 
 ## 9.4 Game Engine
 
@@ -545,12 +670,16 @@ C#
 
 ## 9.6 AI-Assisted Development
 
-| **Date**   | **Tool**           | **Task**                                     | **How the output was checked**                            |
-|------------|--------------------|----------------------------------------------|-----------------------------------------------------------|
-| 10/2026    | Claude (Anthropic) | Template for the FYP plan                    | Reviewed and filled in by me.                             |
-| 10/2026    | Claude (Anthropic) | Initial damage formula                       | Explained and then adjusted by me.                        |
-| 10/2026    | Claude (Anthropic) | Colour palette extraction from reference art | Checked against the reference images.                     |
-| 15/10/2026 | Claude (Anthropic) | GDD structure combined from two templates    | Checked against both templates removed unnecessary parts. |
+| **Date**   | **Tool**                | **Task**                                                                            | **How the output was checked**                                                         |
+|------------|-------------------------|-------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------|
+| 10/2026    | Claude (Anthropic)      | Template for the FYP plan                                                           | Reviewed and filled in by me.                                                          |
+| 10/2026    | Claude (Anthropic)      | Initial damage formula                                                              | Explained and then adjusted by me.                                                     |
+| 10/2026    | Claude (Anthropic)      | Colour palette extraction from reference art                                        | Checked against the reference images.                                                  |
+| 15/10/2026 | Claude (Anthropic)      | GDD structure combined from two templates                                           | Checked against both templates removed unnecessary parts.                              |
+| 10/2026    | Claude Code (Anthropic) | Player controller, camera and lock-on scripts                                       | Plan reviewed before coding; tested in Play mode; scripts explained to the supervisor. |
+| 29/10/2026 | Claude Code (Anthropic) | Footstep audio, combat state machine with event queue, hit resolution with i-frames | Plan reviewed; scripted Play-mode timing tests; animation events placed by me.         |
+| 11/2026    | Claude Code (Anthropic) | Stats, damage formula, stamina, poise, Enemy A hierarchical FSM, automated tests    | Plans reviewed; damage numbers checked by hand; tests run from the editor menu.        |
+| 12/11/2026 | Claude Code (Anthropic) | Code-driven movement, block, heal, enemy hearing                                    | Plan reviewed; 80 automated checks; play-tested by me.                                 |
 
 # 10. Game Art
 
@@ -574,28 +703,28 @@ For the project I will be going for a solo adaptation of Scrum. The reason I am 
 
 ## 11.2 Detailed Schedule
 
-The FYP is worth 15 credits, which corresponds to 375–450 hours for the whole year, including all contingency.
+The FYP is worth 15 credits, which corresponds to 375-450 hours for the whole year, including all contingency.
 
 | **Period** | **Weeks**              | **Hours per week** | **Total hours**               |
 |------------|------------------------|--------------------|-------------------------------|
-| Semester 1 | 8 (sprints 1–4)        | 12.5               | 100                           |
-| Semester 2 | \[~12\] (sprints 5–10) | 25                 | 300                           |
+| Semester 1 | 8 (sprints 1-4)        | 12.5               | 100                           |
+| Semester 2 | \[~12\] (sprints 5-10) | 25                 | 300                           |
 | Total      |                        |                    | 400 (320 planned + 80 buffer) |
 
-| **Sprint** | **Weeks** | **Goal**                                                                                               | **Milestone**         |
-|------------|-----------|--------------------------------------------------------------------------------------------------------|-----------------------|
-| 1          | 1–2       | Project setup (Unity 6.6, GitHub, Trello); player movement and camera, evaluation plan and Ethics form | Ethics form submitted |
-| 2          | 3-4       |                                                                                                        |                       |
-| 3          |           |                                                                                                        |                       |
-| 4          |           |                                                                                                        |                       |
-| 5          |           |                                                                                                        |                       |
-| 6          |           |                                                                                                        |                       |
-| 7          |           |                                                                                                        |                       |
-| 8          |           |                                                                                                        |                       |
-| 9          |           |                                                                                                        |                       |
-| 10         |           |                                                                                                        |                       |
-| 11         |           |                                                                                                        |                       |
-| 12         |           |                                                                                                        |                       |
+| **Sprint** | **Weeks** | **Goal**                                                                                                                                   | **Milestone**                           |
+|------------|-----------|--------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------|
+| 1          | 1-2       | Project setup (Unity 6.6, GitHub, Trello); player movement and camera, evaluation plan and Ethics form                                     | Ethics form submitted                   |
+| 2          | 3-4       | Stats and damage formula, stamina, poise and stagger, Enemy A with hierarchical FSM, code-driven movement, block and heal, automated tests | Player combat feature-complete; Enemy A |
+| 3          |           |                                                                                                                                            |                                         |
+| 4          |           |                                                                                                                                            |                                         |
+| 5          |           |                                                                                                                                            |                                         |
+| 6          |           |                                                                                                                                            |                                         |
+| 7          |           |                                                                                                                                            |                                         |
+| 8          |           |                                                                                                                                            |                                         |
+| 9          |           |                                                                                                                                            |                                         |
+| 10         |           |                                                                                                                                            |                                         |
+| 11         |           |                                                                                                                                            |                                         |
+| 12         |           |                                                                                                                                            |                                         |
 
 *The GDD is written alongside development in every sprint.*
 
@@ -615,7 +744,7 @@ Git with GitHub. GitHub provides free private hosting and a full commit history 
 | R2     | Scope exceeds the 400-hour budget           | Medium         | High       | Scope reduced to one area, boss room and two enemy types; hours logged per sprint and compared with the budget |
 | R3     | Animation-driven combat feels wrong         | Medium         | High       | Combat test scene in sprint 2 to tune timings before level work                                                |
 | R4     | Lack of art and animation assets            | Medium         | Medium     | Mixamo and free assets; grey box until semester 2                                                              |
-| R5     | Clashes with other modules’ deadlines       | High           | Medium     | Small sprint goals; progress reviewed at Friday calls                                                          |
+| R5     | Clashes with other modules' deadlines       | High           | Medium     | Small sprint goals; progress reviewed at Friday calls                                                          |
 | R6     | Ethics approval delayed, blocking playtests | Medium         | High       | Ethics form submitted in sprint 1                                                                              |
 
 ## 11.6 Test Plan
@@ -623,6 +752,19 @@ Git with GitHub. GitHub provides free private hosting and a full commit history 
 ### 11.6.1 Functional Testing
 
 Each feature is checked against its description in this document before its Trello card is closed. The combat test scene shows a debug readout for every hit (range, angle, each term of the damage formula) to verify the formula.
+
+**Automated tests.** Six Play-mode tests with 80 checks run from the editor menu (MTDW then Tests then Run All), each in a fresh Play session, and print a pass or fail verdict. All pass.
+
+| **Test**             | **Checks** | **Covers**                                                                  |
+|----------------------|------------|-----------------------------------------------------------------------------|
+| PlayerLocomotion     | 18         | Speeds, no sliding, sprint-turn sliding, roll distance, strafe speed, lunge |
+| CombatRegression     | 13         | Input buffering, i-frames, stamina, poise, stagger                          |
+| BlockHeal            | 21         | Block, guard break, heal and its interruption                               |
+| EnemyPerceptionLeash | 13         | Sight, hearing, leash, chase speed, disengaging                             |
+| EnemyCombatDodge     | 8          | Attack loop, telegraph, dodging enemy attacks                               |
+| EnemyStaggerDeath    | 7          | Stagger and death                                                           |
+
+The tests caught real bugs during development: the slash creeping forward on every swing, sliding when turning while sprinting, the lunge pushing the player into the enemy, and an unreliable dodge test.
 
 ### 11.6.2 Playtesting and Evaluation
 
@@ -632,9 +774,9 @@ The product is evaluated through playtesting with questionnaires. The plan below
 |---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | Sessions      | Informal grey-box playtest in sprint 4 (feedback notes only). Formal round 1 in sprint 8 and round 2 in sprint 10.                                                                                                                                          |
 | Participants  | 10 volunteer students aged 18+ per formal round. Prior Souls-like experience recorded as a category (none / some / a lot).                                                                                                                                  |
-| Procedure     | Information sheet and consent form, 10–20 minutes of play with a printed control sheet and no other help, questionnaire about 5 to 10 minutes long.                                                                                                         |
+| Procedure     | Information sheet and consent form, 10-20 minutes of play with a printed control sheet and no other help, questionnaire about 5 to 10 minutes long.                                                                                                         |
 | Instrument 1  | Game Experience Questionnaire core module [(IJsselsteijn, de Kort and Poels, 2013)](#122-references), competence, challenge, tension/annoyance and positive affect.                                                                                             |
-| Instrument 2  | Custom 5-point Likert items mapped to the design pillars, e.g. “Enemy attacks were easy to read before they hit”, “When I was hit, I understood why”, “Damage variation felt fair”, “Hits felt impactful”, “When I ran out of stamina it was my own fault”. |
+| Instrument 2  | Custom 5-point Likert items mapped to the design pillars, e.g. "Enemy attacks were easy to read before they hit", "When I was hit, I understood why", "Damage variation felt fair", "Hits felt impactful", "When I ran out of stamina it was my own fault". |
 | Instrument 3  | Open questions: best moment, most frustrating moment, suggested change.                                                                                                                                                                                     |
 | Observation   | Anonymous counts recorded by the game or the observer: deaths, cause of death (e.g. stamina depleted), time to reach the boss.                                                                                                                              |
 | Data handling | Anonymous, no names or identifying data stored. Stored on OneDrive and deleted after grading.                                                                                                                                                               |
@@ -675,5 +817,7 @@ W.A. IJsselsteijn, Kort, Y.A.W. de and K. Poels (2025). *The game experience que
 
 ## 12.3. Project Logs
 
-| **Sprint** | **Planned** | **Completed** | **Hours** | **Notes** |
-|------------|-------------|---------------|-----------|-----------|
+| **Sprint** | **Planned**                                                             | **Completed**                                                                                                                                        | **Hours** | **Notes**                                                              |
+|------------|-------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|------------------------------------------------------------------------|
+| 1          | Project setup; player movement and camera; evaluation plan; Ethics form | Setup; controller; camera with lock-on; Ethics form submitted. Ahead of plan: footsteps, combat state machine with event queue, dodge with i-frames. | \[ \]     | Movement later changed from root motion to code (supervisor feedback). |
+| 2          | Combat systems and first enemy                                          | Stats, damage formula, stamina, HUD, poise, Enemy A, code-driven movement, block, heal, 80 automated checks.                                         | \[ \]     | Next: Enemy B, grey-box level and checkpoint.                          |

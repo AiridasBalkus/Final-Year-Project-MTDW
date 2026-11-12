@@ -5,12 +5,13 @@ public class EnemyWindUpCue : MonoBehaviour
 {
     public Renderer[] renderers; // materials need emission enabled
     [ColorUsage(false, true)] public Color glowColor = new Color(4f, 1.5f, 0f);
-    public float rampTime = 0.3f;
+    public float rampTime = 0.3f; // at attack speed 1
 
     static readonly int EmissionId = Shader.PropertyToID("_EmissionColor");
 
     Material[] materials;
     float onAt = -1f;
+    float ramp;
 
     void Awake()
     {
@@ -19,9 +20,11 @@ public class EnemyWindUpCue : MonoBehaviour
             materials[i] = renderers[i].material;
     }
 
-    public void On()
+    // scaled by the swing speed so the glow peaks at the same point of the swing
+    public void On(float attackSpeed)
     {
         onAt = Time.time;
+        ramp = rampTime / attackSpeed;
     }
 
     public void Off()
@@ -33,7 +36,7 @@ public class EnemyWindUpCue : MonoBehaviour
     void Update()
     {
         if (onAt < 0f) return;
-        float t = Mathf.Clamp01((Time.time - onAt) / rampTime);
+        float t = Mathf.Clamp01((Time.time - onAt) / ramp);
         SetGlow(glowColor * t);
     }
 

@@ -1,10 +1,10 @@
 using UnityEngine;
 
-public enum HitResult { Hit, HitPoiseBroken, Dodged, OutOfReach, AlreadyResolved }
+public enum HitResult { Hit, HitPoiseBroken, Dodged, Blocked, GuardBroken, OutOfReach, AlreadyResolved }
 
 // Decides if a swing lands. No hitboxes - this gets called from the AttackHit
 // animation event (or the dummy's timer). Connecting is deterministic:
-// in reach + target in i-frames = Dodged, in reach otherwise = Hit.
+// in reach + i-frames = Dodged, in reach + inside the target's Guard = Blocked, otherwise Hit.
 [RequireComponent(typeof(CombatStats))]
 public class HitResolver : MonoBehaviour
 {
@@ -58,15 +58,13 @@ public class HitResolver : MonoBehaviour
             return HitResult.Dodged;
         }
 
+        if (target.TryGetComponent(out Guard guard) && guard.Covers(transform.position))
+            return ResolveBlocked(target, guard);
+
         // damage = WeaponBase × AttackMultiplier × (1 + Strength × k) × 100 / (100 + Defence) × Variance × Crit
         // only variance and crit are random, whether the hit lands was decided above
-        float strengthTerm = 1f + stats.strength * strengthScaling;
-        float defenceTerm = 100f / (100f + target.defence);
-        float variance = Random.Range(1f - damageVariance, 1f + damageVariance);
-        bool crit = Random.value < stats.CritChance;
+        float raw = RawDamage(target, true, out float strengthTerm, out float defenceTerm, out float variance, out bool crit);
         float critTerm = crit ? critMultiplier : 1f;
-
-        float raw = weapon.weaponBase * attack.attackMultiplier * strengthTerm * defenceTerm * variance * critTerm;
         int damage = Mathf.Max(Mathf.RoundToInt(raw), 1);
 
         hitCount++;
@@ -87,5 +85,35 @@ public class HitResolver : MonoBehaviour
             $" × var {variance:F4} × crit {critTerm:F2} = {raw:F3} → {damage}" +
             $" | crits {critCount}/{hitCount} ({(float)critCount / hitCount:P0}, chance {stats.CritChance:P0})");
         return broke ? HitResult.HitPoiseBroken : HitResult.Hit;
+    }
+
+    // reduced damage, no crit or poise damage, costs blockStaminaCost; below 0 stamina breaks the guard
+    HitResult ResolveBlocked(CombatStats target, Guard guard)
+    {
+        float raw = RawDamage(target, false, out _, out _, out float variance, out _);
+        int damage = Mathf.Max(Mathf.RoundToInt(raw * (1f - guard.blockReduction)), 1);
+
+        Stamina stamina = target.GetComponent<Stamina>();
+        float staminaBefore = stamina.Current;
+        stamina.Spend(attack.blockStaminaCost);
+        bool broke = stamina.Current < 0f;
+
+        target.TakeDamage(damage);
+        guard.ReportBlock(broke);
+
+        Debug.Log($"[Hit] {name}, Target: {target.name}: {(broke ? "GUARD BROKEN" : "BLOCKED")} {damage}" +
+            $" ({raw:F1} × {1f - guard.blockReduction:F2}, var {variance:F4}), {target.name} HP {target.Health}/{target.MaxHealth}," +
+            $" stamina {staminaBefore:F0} - {attack.blockStaminaCost:F0} → {stamina.Current:F0}");
+        return broke ? HitResult.GuardBroken : HitResult.Blocked;
+    }
+
+    float RawDamage(CombatStats target, bool canCrit, out float strengthTerm, out float defenceTerm, out float variance, out bool crit)
+    {
+        strengthTerm = 1f + stats.strength * strengthScaling;
+        defenceTerm = 100f / (100f + target.defence);
+        variance = Random.Range(1f - damageVariance, 1f + damageVariance);
+        crit = canCrit && Random.value < stats.CritChance;
+        float critTerm = crit ? critMultiplier : 1f;
+        return weapon.weaponBase * attack.attackMultiplier * strengthTerm * defenceTerm * variance * critTerm;
     }
 }

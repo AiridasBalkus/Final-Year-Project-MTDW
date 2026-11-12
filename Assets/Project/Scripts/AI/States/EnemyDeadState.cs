@@ -15,6 +15,7 @@ public class EnemyDeadState : State
     public override void Enter()
     {
         brain.Motor.Stop();
+        brain.Motor.BeginAction(1f); // the death clip's forward fall moves the body
         brain.Animator.SetTrigger(DieHash);
         brain.GetComponent<LockOnTarget>().enabled = false;
         brain.GetComponent<Collider>().enabled = false;
