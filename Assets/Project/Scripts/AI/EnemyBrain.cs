@@ -16,6 +16,8 @@ public class EnemyBrain : MonoBehaviour
     public EnemyWindUpCue Cue { get; private set; }
     public Vector3 SpawnPoint { get; private set; }
     public Quaternion SpawnRotation { get; private set; }
+    public float WalkSpeed { get; private set; } // m/s, rolled per instance
+    public float RunSpeed { get; private set; }
     public string StatePath => machine.Path;
 
     public State Idle { get; private set; }
@@ -28,6 +30,7 @@ public class EnemyBrain : MonoBehaviour
 
     readonly StateMachine machine = new StateMachine();
     CombatStats stats;
+    PlayerNoise targetNoise;
     float[] attackReadyAt; // per attack in config.attacks, for cooldowns
     float leashIgnoredUntil;
 
@@ -39,9 +42,16 @@ public class EnemyBrain : MonoBehaviour
         Stamina = GetComponent<Stamina>();
         Cue = GetComponent<EnemyWindUpCue>();
         stats = GetComponent<CombatStats>();
+        targetNoise = target.GetComponent<PlayerNoise>();
         SpawnPoint = transform.position;
         SpawnRotation = transform.rotation;
         attackReadyAt = new float[config.attacks.Count];
+
+        // so two enemies of the same type don't move identically
+        WalkSpeed = Random.Range(config.walkSpeedMin, config.walkSpeedMax);
+        RunSpeed = Random.Range(config.runSpeedMin, config.runSpeedMax);
+        Motor.Acceleration = config.acceleration;
+        Debug.Log($"[Enemy] {name} speeds walk {WalkSpeed:F2} run {RunSpeed:F2}");
 
         Idle = new EnemyIdleState(this);
         Alert = new EnemyAlertState(this);
@@ -176,6 +186,15 @@ public class EnemyBrain : MonoBehaviour
     }
 
     public float CombatRange => config.MaxAttackRange + config.combatRangeMargin;
+
+    // sight, or hearing inside the player's noise radius
+    public bool NoticesTarget()
+    {
+        if (CanSeeTarget()) return true;
+        if (DistanceToTarget > targetNoise.Radius) return false;
+        Debug.Log($"[Enemy] {name} heard the player ({DistanceToTarget:F1} m)");
+        return true;
+    }
 
     public bool CanSeeTarget()
     {

@@ -1,25 +1,15 @@
 using UnityEngine;
 
-// Root motion movement. This script only sets animator params and rotation,
-// the clips do the actual moving (applied in OnAnimatorMove).
+// Moves the player by code at the config speeds, the animator just follows the real velocity.
+// Attacks and the dodge use the clip's root motion along facing, plus the attack lunge.
 [RequireComponent(typeof(Animator), typeof(CharacterController))]
 public class PlayerLocomotion : MonoBehaviour
 {
-    [Header("References")]
+    public PlayerMovementConfig config;
     public PlayerInputHandler input;
     public Transform cameraTransform;
-
-    [Header("Turning")]
-    public float turnSpeed = 720f;       // deg/sec
-    public float lockedTurnSpeed = 240f; // deg/sec, slower so facing the target doesn't snap
-
-    [Header("Gait")]
-    public float walkInputThreshold = 0.5f; // stick below this = walk, keyboard always runs
-    // these need to match the thresholds in the animator blend trees
-    public float walkSpeedValue = 1f;
-    public float runSpeedValue = 3f;
-    public float sprintSpeedValue = 3f;
-    public float speedDampTime = 0.1f;
+    public float paramDampTime = 0.1f;
+    public float speedMultDampTime = 0.5f; // about one stride, root speed varies within a step
 
     [Header("Gravity")]
     public float gravity = -20f;
@@ -27,18 +17,26 @@ public class PlayerLocomotion : MonoBehaviour
 
     public Transform LockOnTarget { get; private set; }
 
-    // turned off by the combat FSM while attacking/dodging, those clips move with their own root motion
+    // turned off by the combat FSM during attacks, dodges and staggers
     public bool MovementEnabled { get; set; } = true;
-    public bool StraightRootMotion { get; set; } // the roll clip drifts sideways, this keeps it straight
+    // set by the combat FSM while blocking or healing
+    public bool WalkOnly { get; set; }
+    // set by the combat FSM for attacks and the dodge, 1 = the clip's own distance
+    public float ActionMotionScale { get; set; } = 1f;
+    public float Speed => velocity.magnitude; // m/s, from code movement (0 during actions)
 
     static readonly int SpeedHash = Animator.StringToHash("Speed");
     static readonly int MoveXHash = Animator.StringToHash("MoveX");
     static readonly int MoveYHash = Animator.StringToHash("MoveY");
     static readonly int IsLockedOnHash = Animator.StringToHash("IsLockedOn");
+    static readonly int LocoSpeedMultHash = Animator.StringToHash("LocoSpeedMult");
 
     Animator animator;
     CharacterController controller;
+    Vector3 velocity; // horizontal, m/s
     float verticalVelocity;
+    float speedMult = 1f;
+    readonly AttackLunge lunge = new AttackLunge();
 
     // pass null to go back to free movement
     public void SetLockOnTarget(Transform target)
@@ -51,45 +49,73 @@ public class PlayerLocomotion : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         controller = GetComponent<CharacterController>();
+        // on so OnAnimatorMove runs and actions can use the clip's motion
         animator.applyRootMotion = true;
     }
 
     void Update()
     {
-        if (!MovementEnabled) return;
+        if (!MovementEnabled)
+        {
+            velocity = Vector3.zero;
+            return;
+        }
 
         Vector3 moveDir = CameraRelative(input.Move);
         float speed = GetTargetSpeed(input.Move.magnitude);
-        float dt = Time.deltaTime;
 
         if (LockOnTarget != null)
         {
+            // strafe clips cover every direction
             Vector3 toTarget = LockOnTarget.position - transform.position;
             toTarget.y = 0f;
-            RotateTowards(toTarget, lockedTurnSpeed);
-
-            // no sprint strafe clips, so cap at run
-            Vector3 local = transform.InverseTransformDirection(moveDir.normalized) * Mathf.Min(speed, runSpeedValue);
-            animator.SetFloat(MoveXHash, local.x, speedDampTime, dt);
-            animator.SetFloat(MoveYHash, local.z, speedDampTime, dt);
+            RotateTowards(toTarget, config.lockedTurnSpeed);
+            Vector3 target = moveDir.normalized * Mathf.Min(speed, config.lockedRunSpeed);
+            float rate = target.sqrMagnitude > velocity.sqrMagnitude ? config.acceleration : config.deceleration;
+            velocity = Vector3.MoveTowards(velocity, target, rate * Time.deltaTime);
         }
         else
         {
-            RotateTowards(moveDir, turnSpeed);
-            // keep the strafe params roughly in sync so locking on mid-run doesn't pop
-            animator.SetFloat(MoveXHash, 0f, speedDampTime, dt);
-            animator.SetFloat(MoveYHash, Mathf.Min(speed, runSpeedValue), speedDampTime, dt);
+            // only forward clips here, so move along facing and slow down in sharp turns
+            RotateTowards(moveDir, config.turnSpeed);
+            float facing = moveDir.sqrMagnitude > 0.0001f ? Vector3.Dot(transform.forward, moveDir.normalized) : 1f;
+            float target = speed * Mathf.Clamp01(facing);
+            float current = velocity.magnitude;
+            float rate = target > current ? config.acceleration : config.deceleration;
+            velocity = transform.forward * Mathf.MoveTowards(current, target, rate * Time.deltaTime);
         }
 
-        animator.SetFloat(SpeedHash, speed, speedDampTime, dt);
+        UpdateAnimator();
+    }
+
+    void UpdateAnimator()
+    {
+        float dt = Time.deltaTime;
+        // what the controller actually did last frame, so walking into a wall doesn't play a run
+        Vector3 actual = controller.velocity;
+        actual.y = 0f;
+        Vector3 local = transform.InverseTransformDirection(actual);
+        animator.SetFloat(SpeedHash, actual.magnitude, paramDampTime, dt);
+        animator.SetFloat(MoveXHash, local.x, paramDampTime, dt);
+        animator.SetFloat(MoveYHash, local.z, paramDampTime, dt);
+
+        speedMult = LocoPlayback.Update(animator, speedMult, actual, speedMultDampTime);
+        animator.SetFloat(LocoSpeedMultHash, speedMult);
     }
 
     void OnAnimatorMove()
     {
-        // only use XZ from the animation, gravity handles Y
-        Vector3 delta = animator.deltaPosition;
-        if (StraightRootMotion)
-            delta = transform.forward * Mathf.Max(0f, Vector3.Dot(delta, transform.forward));
+        Vector3 delta;
+        if (MovementEnabled)
+        {
+            delta = velocity * Time.deltaTime;
+        }
+        else
+        {
+            // along facing only, the roll drifts sideways (backwards is kept for the slash's step back)
+            float forward = Vector3.Dot(animator.deltaPosition, transform.forward);
+            delta = transform.forward * (forward * ActionMotionScale + LungeStep());
+        }
 
         if (controller.isGrounded && verticalVelocity < 0f)
             verticalVelocity = groundedStickVelocity;
@@ -99,6 +125,19 @@ public class PlayerLocomotion : MonoBehaviour
         delta.y = verticalVelocity * Time.deltaTime;
         controller.Move(delta);
     }
+
+    // stops short of the lock-on target, lunging into a close enemy pushes you out of the swing's arc
+    float LungeStep()
+    {
+        float step = lunge.Step(animator);
+        if (LockOnTarget == null) return step;
+        Vector3 toTarget = LockOnTarget.position - transform.position;
+        toTarget.y = 0f;
+        return Mathf.Min(step, Mathf.Max(0f, toTarget.magnitude - config.lungeStopDistance));
+    }
+
+    public void BeginLunge(AttackData attack) => lunge.Begin(attack);
+    public void EndLunge() => lunge.End();
 
     // so the dodge goes where the stick is pushed
     public void FaceMoveInput()
@@ -122,8 +161,9 @@ public class PlayerLocomotion : MonoBehaviour
     float GetTargetSpeed(float inputAmount)
     {
         if (inputAmount < 0.01f) return 0f;
-        if (input.SprintHeld) return sprintSpeedValue;
-        return inputAmount < walkInputThreshold ? walkSpeedValue : runSpeedValue;
+        if (WalkOnly) return config.walkSpeed;
+        if (input.SprintHeld) return config.sprintSpeed;
+        return inputAmount < config.walkInputThreshold ? config.walkSpeed : config.runSpeed;
     }
 
     void RotateTowards(Vector3 direction, float degreesPerSecond)

@@ -42,6 +42,6 @@ public class EnemyRepositionState : State
         if (dist > config.preferredDistance) move = Vector3.forward;
         else if (dist < config.minDistance) move = Vector3.back;
         else move = Vector3.right * strafeDir;
-        brain.Motor.MoveLocal(move * config.repositionSpeed);
+        brain.Motor.MoveLocal(move, brain.WalkSpeed);
     }
 }

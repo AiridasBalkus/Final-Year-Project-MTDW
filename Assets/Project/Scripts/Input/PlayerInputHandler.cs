@@ -8,11 +8,13 @@ public class PlayerInputHandler : MonoBehaviour
     public Vector2 Move { get; private set; }
     public Vector2 Look { get; private set; }
     public bool SprintHeld { get; private set; }
+    public bool BlockHeld { get; private set; }
     public bool LookIsMouse { get; private set; } // mouse delta and stick values are on different scales
 
     public event Action LockOnPressed;
     public event Action AttackPressed;
     public event Action DodgePressed;
+    public event Action HealPressed;
 
     PlayerControls controls;
 
@@ -23,6 +25,7 @@ public class PlayerInputHandler : MonoBehaviour
         controls.Player.LockOn.performed += OnLockOn;
         controls.Player.Attack.performed += OnAttack;
         controls.Player.Dodge.performed += OnDodge;
+        controls.Player.Heal.performed += OnHeal;
         controls.Player.Enable();
     }
 
@@ -31,6 +34,7 @@ public class PlayerInputHandler : MonoBehaviour
         controls.Player.LockOn.performed -= OnLockOn;
         controls.Player.Attack.performed -= OnAttack;
         controls.Player.Dodge.performed -= OnDodge;
+        controls.Player.Heal.performed -= OnHeal;
         controls.Player.Disable();
     }
 
@@ -45,6 +49,7 @@ public class PlayerInputHandler : MonoBehaviour
         Move = Vector2.ClampMagnitude(player.Move.ReadValue<Vector2>(), 1f);
         Look = player.Look.ReadValue<Vector2>();
         SprintHeld = player.Sprint.IsPressed();
+        BlockHeld = player.Block.IsPressed();
 
         if (player.Look.activeControl != null)
             LookIsMouse = player.Look.activeControl.device is Mouse;
@@ -63,5 +68,10 @@ public class PlayerInputHandler : MonoBehaviour
     void OnDodge(InputAction.CallbackContext ctx)
     {
         DodgePressed?.Invoke();
+    }
+
+    void OnHeal(InputAction.CallbackContext ctx)
+    {
+        HealPressed?.Invoke();
     }
 }

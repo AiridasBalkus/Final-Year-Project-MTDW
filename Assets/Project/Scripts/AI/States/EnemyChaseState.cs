@@ -21,7 +21,7 @@ public class EnemyChaseState : State
             return;
         }
 
-        brain.Motor.MoveTo(brain.target.transform.position, brain.config.chaseSpeed, brain.config.turnSpeed);
+        brain.Motor.MoveTo(brain.target.transform.position, brain.RunSpeed, brain.config.turnSpeed);
     }
 
     public override void Exit()

@@ -16,4 +16,35 @@ MonoBehaviour:
   halfAngle: 50
   attackMultiplier: 1
   staminaCost: 20
+  blockStaminaCost: 20
   poiseDamage: 10
+  lungeScale: 1
+  lungeDistance: 0
+  lungeStart: 0.2
+  lungeEnd: 0.42
+  lungeCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  speedMin: 0.9
+  speedMax: 1.1

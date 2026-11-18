@@ -24,10 +24,11 @@ MonoBehaviour:
     m_Bits: 4294967295
   eyeHeight: 1.6
   targetHeight: 1
-  patrolSpeed: 1
-  chaseSpeed: 3
-  repositionSpeed: 1
-  returnSpeed: 1
+  walkSpeedMin: 1.15
+  walkSpeedMax: 1.55
+  runSpeedMin: 3
+  runSpeedMax: 3.4
+  acceleration: 10
   turnSpeed: 360
   patrolWaitTime: 2
   arriveDistance: 0.5

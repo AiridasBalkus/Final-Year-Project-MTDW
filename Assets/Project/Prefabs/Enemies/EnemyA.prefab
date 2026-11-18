@@ -397,7 +397,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 09c8320e220035d4584fee9896eb7fd5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMotor
-  moveDampTime: 0.1
+  paramDampTime: 0.1
+  speedMultDampTime: 0.5
 --- !u!114 &5643445296236820171
 MonoBehaviour:
   m_ObjectHideFlags: 0

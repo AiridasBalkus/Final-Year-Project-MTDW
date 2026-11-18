@@ -26,13 +26,14 @@ public class EnemyConfig : ScriptableObject
     public float eyeHeight = 1.6f;
     public float targetHeight = 1f; // where on the player line of sight aims
 
-    // animator blend values like the player's (walk 1, run 3), the clips set the real speed
+    // m/s, each enemy rolls its own walk/run speed in these ranges when it spawns
     [Header("Movement")]
-    public float patrolSpeed = 1f;
-    public float chaseSpeed = 3f;
-    public float repositionSpeed = 1f;
-    public float returnSpeed = 1f;
-    public float turnSpeed = 360f; // deg/sec
+    public float walkSpeedMin = 1.1f;
+    public float walkSpeedMax = 1.5f;
+    public float runSpeedMin = 2.6f;
+    public float runSpeedMax = 3.6f;
+    public float acceleration = 10f; // m/s²
+    public float turnSpeed = 360f;   // deg/sec
     public float patrolWaitTime = 2f;
     public float arriveDistance = 0.5f;
 
@@ -41,7 +42,7 @@ public class EnemyConfig : ScriptableObject
     public float combatRangeMargin = 1f; // enters combat within the longest attack range plus this
     public float preferredDistance = 1.8f;
     public float minDistance = 1.3f;    // backs off when closer
-    public float reachBuffer = 0.4f;    // attacks drift with root motion, so only pick them this far inside their reach
+    public float reachBuffer = 0.4f;    // only pick attacks this far inside their reach, the player may step back
     public float repositionTimeMin = 0.5f;
     public float repositionTimeMax = 1.5f;
     public float recoverTime = 0.8f;

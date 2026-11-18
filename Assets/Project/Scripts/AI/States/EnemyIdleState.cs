@@ -20,7 +20,7 @@ public class EnemyIdleState : State
 
     public override void Tick()
     {
-        if (brain.CanSeeTarget())
+        if (brain.NoticesTarget())
         {
             brain.ChangeState(brain.Alert);
             return;
@@ -44,7 +44,7 @@ public class EnemyIdleState : State
         }
         else
         {
-            brain.Motor.MoveTo(point, brain.config.patrolSpeed, brain.config.turnSpeed);
+            brain.Motor.MoveTo(point, brain.WalkSpeed, brain.config.turnSpeed);
         }
     }
 }

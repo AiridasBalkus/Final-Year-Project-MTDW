@@ -22,13 +22,13 @@ public class EnemyReturnState : State
             return;
         }
 
-        if (brain.DistanceFromSpawn < config.leashDistance - config.reaggroMargin && brain.CanSeeTarget())
+        if (brain.DistanceFromSpawn < config.leashDistance - config.reaggroMargin && brain.NoticesTarget())
         {
             brain.ChangeState(brain.Alert);
             return;
         }
 
-        brain.Motor.MoveTo(brain.SpawnPoint, config.returnSpeed, config.turnSpeed);
+        brain.Motor.MoveTo(brain.SpawnPoint, brain.WalkSpeed, config.turnSpeed);
     }
 
     public override void Exit()
