@@ -21,6 +21,13 @@ public class EnemyCombatState : State
         Sub.Change(Reposition);
     }
 
+    // straight into an attack, skipping the reposition wait, reach check and cooldown (retaliation)
+    public void ForceAttack(int index)
+    {
+        Attack.attackIndex = index;
+        Sub.Change(Attack);
+    }
+
     public override void Tick()
     {
         // only leave between attacks, never mid-swing or during the punish window

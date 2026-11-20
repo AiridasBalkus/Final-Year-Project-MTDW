@@ -26,6 +26,7 @@ public class CombatRegressionTest : PlayModeTest
 
     // timed dodges and the dummy combo
     float dodgeAt = -1f, comboStart = -1f, poiseHitAt = -1f;
+    const float ComboGap = 0.6f; // seconds
     int comboAttacks;
 
     protected override void Setup()
@@ -231,10 +232,11 @@ public class CombatRegressionTest : PlayModeTest
                 {
                     Place();
                     LockOnto(Dummy.GetComponent<LockOnTarget>());
-                    // the third hit should land 0.3 s into a wind-up
+                    // the third hit should land 0.3 s into a wind-up; the combo starts ComboGap early and the
+                    // second press waits ComboGap, so the dummy's previous swing lands during the first attack
                     float nextWindup = (float)DummyNextAttack.GetValue(Dummy);
                     float period = Dummy.attackInterval + Dummy.windUpTime;
-                    comboStart = nextWindup + period + 0.3f - hitOffset - 2f * cycle;
+                    comboStart = nextWindup + period + 0.3f - hitOffset - 2f * cycle - ComboGap;
                     while (comboStart < now + 0.05f) comboStart += period;
                     Go(10, "dummy stagger: 2 hits, the third lands during a wind-up");
                 }
@@ -247,7 +249,8 @@ public class CombatRegressionTest : PlayModeTest
                     comboAttacks = 1;
                     lastPress = now;
                 }
-                else if (comboAttacks > 0 && comboAttacks < 3 && Fsm.State == CombatState.Locomotion && now - lastPress > 0.15f)
+                else if (comboAttacks > 0 && comboAttacks < 3 && Fsm.State == CombatState.Locomotion && now - lastPress > 0.15f
+                    && (comboAttacks > 1 || now >= comboStart + cycle + ComboGap))
                 {
                     PressAttack();
                     comboAttacks++;

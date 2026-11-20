@@ -88,6 +88,15 @@ public class EnemyMotor : MonoBehaviour
         lunge.End();
     }
 
+    // teleport, e.g. back to spawn on a reset
+    public void Warp(Vector3 position, Quaternion rotation)
+    {
+        EndAction();
+        agent.Warp(position);
+        transform.SetPositionAndRotation(position, rotation);
+        velocity = targetVelocity = actualVelocity = Vector3.zero;
+    }
+
     void Update()
     {
         if (inAction) return;
@@ -95,7 +104,8 @@ public class EnemyMotor : MonoBehaviour
         velocity = Vector3.MoveTowards(velocity, targetVelocity, Acceleration * Time.deltaTime);
 
         float dt = Time.deltaTime;
-        Vector3 local = transform.InverseTransformDirection(actualVelocity);
+        // blend positions are clip speeds at scale 1, a scaled-up body covers more ground per stride
+        Vector3 local = transform.InverseTransformDirection(actualVelocity) / transform.lossyScale.x;
         animator.SetFloat(MoveXHash, local.x, paramDampTime, dt);
         animator.SetFloat(MoveYHash, local.z, paramDampTime, dt);
         speedMult = LocoPlayback.Update(animator, speedMult, actualVelocity, speedMultDampTime);

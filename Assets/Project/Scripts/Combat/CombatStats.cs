@@ -84,4 +84,12 @@ public class CombatStats : MonoBehaviour
     {
         Health = MaxHealth;
     }
+
+    // full health and poise, also brings a dead character back (rest and respawn)
+    public void RestoreAll()
+    {
+        Health = MaxHealth;
+        CurrentPoise = MaxPoise;
+        Invincible = false;
+    }
 }

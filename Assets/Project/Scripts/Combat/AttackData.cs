@@ -10,6 +10,7 @@ public class AttackData : ScriptableObject
     public float staminaCost = 20f;
     public float blockStaminaCost = 20f; // taken from a defender who blocks it
     public float poiseDamage = 10f;
+    public bool hyperArmour; // enemy only: a poise break during this attack doesn't interrupt it, damage still applies
 
     public float lungeScale = 1f; // scales the clip's forward root motion, 1 = as animated
 

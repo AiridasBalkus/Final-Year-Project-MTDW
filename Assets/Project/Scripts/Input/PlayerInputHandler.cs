@@ -15,6 +15,7 @@ public class PlayerInputHandler : MonoBehaviour
     public event Action AttackPressed;
     public event Action DodgePressed;
     public event Action HealPressed;
+    public event Action InteractPressed;
 
     PlayerControls controls;
 
@@ -26,6 +27,7 @@ public class PlayerInputHandler : MonoBehaviour
         controls.Player.Attack.performed += OnAttack;
         controls.Player.Dodge.performed += OnDodge;
         controls.Player.Heal.performed += OnHeal;
+        controls.Player.Interact.performed += OnInteract;
         controls.Player.Enable();
     }
 
@@ -35,6 +37,7 @@ public class PlayerInputHandler : MonoBehaviour
         controls.Player.Attack.performed -= OnAttack;
         controls.Player.Dodge.performed -= OnDodge;
         controls.Player.Heal.performed -= OnHeal;
+        controls.Player.Interact.performed -= OnInteract;
         controls.Player.Disable();
     }
 
@@ -73,5 +76,10 @@ public class PlayerInputHandler : MonoBehaviour
     void OnHeal(InputAction.CallbackContext ctx)
     {
         HealPressed?.Invoke();
+    }
+
+    void OnInteract(InputAction.CallbackContext ctx)
+    {
+        InteractPressed?.Invoke();
     }
 }

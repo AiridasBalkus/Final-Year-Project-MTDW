@@ -185,7 +185,7 @@ public class LockOnController : MonoBehaviour
         lockOnCamera.Priority = lockedPriority;
     }
 
-    void Unlock()
+    public void Unlock()
     {
         if (Current == null) return;
 

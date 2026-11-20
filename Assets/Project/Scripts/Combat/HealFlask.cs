@@ -1,6 +1,6 @@
 using UnityEngine;
 
-// Heal charges, used by the combat FSM. No refills yet, there are no checkpoints.
+// Heal charges, used by the combat FSM. Refilled by resting or respawning (GameLoop).
 public class HealFlask : MonoBehaviour
 {
     public int maxCharges = 3;
@@ -17,5 +17,10 @@ public class HealFlask : MonoBehaviour
     public void UseCharge()
     {
         Charges--;
+    }
+
+    public void Refill()
+    {
+        Charges = maxCharges;
     }
 }

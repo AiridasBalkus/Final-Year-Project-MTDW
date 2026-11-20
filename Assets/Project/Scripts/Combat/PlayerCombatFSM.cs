@@ -23,7 +23,7 @@ public class PlayerCombatFSM : MonoBehaviour
     public PlayerInputHandler input;
     public PlayerLocomotion locomotion;
     public LockOnController lockOn;
-    public float bufferTime = 0.3f;
+    public float bufferTime = 0.5f; // seconds a press waits for a state that can take it
     public float dodgeStaminaCost = 15f; // attack cost comes from the AttackData
     public bool logEvents = true;
 
@@ -180,6 +180,7 @@ public class PlayerCombatFSM : MonoBehaviour
         animator.SetBool(IsBlockingHash, next == CombatState.Blocking);
         animator.SetBool(IsHealingHash, next == CombatState.Healing);
         locomotion.ActionMotionScale = 1f;
+        locomotion.ActionTurnSpeed = next == CombatState.Attacking ? locomotion.config.attackTurnSpeed : 0f;
         locomotion.EndLunge();
         stamina.RegenPaused = next == CombatState.Attacking || next == CombatState.Dodging || next == CombatState.Healing;
         stamina.RegenMultiplier = next == CombatState.Blocking ? guard.regenMultiplier : 1f;
@@ -282,6 +283,7 @@ public class PlayerCombatFSM : MonoBehaviour
         events.Clear();
         locomotion.MovementEnabled = false;
         locomotion.WalkOnly = false;
+        locomotion.Stop();
         animator.SetBool(IsBlockingHash, false);
         animator.SetBool(IsHealingHash, false);
         guard.Active = false;
@@ -289,11 +291,21 @@ public class PlayerCombatFSM : MonoBehaviour
         stats.Invincible = false;
     }
 
+    // back to Locomotion after GameLoop has moved and refilled the player
+    public void Respawn()
+    {
+        events.Clear();
+        animator.Rebind();
+        animator.Update(0f);
+        ChangeState(CombatState.Locomotion);
+    }
+
     // animation events
 
     public void AttackHit()
     {
         if (State != CombatState.Attacking) return;
+        locomotion.ActionTurnSpeed = 0f; // committed from the hit on
 
         if (lockOn.Current == null)
         {
@@ -331,7 +343,10 @@ public class PlayerCombatFSM : MonoBehaviour
     }
 
     public void HealEnd() => Enqueue(CombatEventType.AnimationFinished, CombatState.Healing);
-    public void AttackEnd() => Enqueue(CombatEventType.AnimationFinished, CombatState.Attacking);
+    // the swing can be cancelled into the next attack or a dodge from here, before the follow-through ends
+    public void AttackRecover() => Enqueue(CombatEventType.AnimationFinished, CombatState.Attacking);
+    // the player leaves at AttackRecover; ignored, otherwise a chained swing would be ended by the previous clip's event
+    public void AttackEnd() { }
     public void DodgeEnd() => Enqueue(CombatEventType.AnimationFinished, CombatState.Dodging);
     public void HitReactEnd() => Enqueue(CombatEventType.AnimationFinished, CombatState.HitReact);
 

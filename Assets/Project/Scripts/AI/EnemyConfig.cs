@@ -48,6 +48,12 @@ public class EnemyConfig : ScriptableObject
     public float recoverTime = 0.8f;
     public float staggerTime = 1.5f;
 
+    // taking this many hits within the window while not attacking forces retaliateAttack, punishing mashing
+    [Header("Retaliation")]
+    public int retaliateHits = 0; // 0 = off
+    public float retaliateWindow = 2.5f; // seconds
+    public int retaliateAttack = 0;      // index into attacks, ignores its range and cooldown
+
     public float MaxAttackRange
     {
         get

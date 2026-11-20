@@ -23,6 +23,8 @@ public class PlayerLocomotion : MonoBehaviour
     public bool WalkOnly { get; set; }
     // set by the combat FSM for attacks and the dodge, 1 = the clip's own distance
     public float ActionMotionScale { get; set; } = 1f;
+    // deg/sec the character may still turn while MovementEnabled is off, set by the combat FSM
+    public float ActionTurnSpeed { get; set; }
     public float Speed => velocity.magnitude; // m/s, from code movement (0 during actions)
 
     static readonly int SpeedHash = Animator.StringToHash("Speed");
@@ -45,6 +47,28 @@ public class PlayerLocomotion : MonoBehaviour
         animator.SetBool(IsLockedOnHash, target != null);
     }
 
+    // the controller has to be off to move the transform directly
+    public void Teleport(Vector3 position, Quaternion rotation)
+    {
+        controller.enabled = false;
+        transform.SetPositionAndRotation(position, rotation);
+        controller.enabled = true;
+        velocity = Vector3.zero;
+        verticalVelocity = 0f;
+    }
+
+    // on death: settle into idle, otherwise the frozen run params keep playing the run and its root motion moves the body
+    public void Stop()
+    {
+        velocity = Vector3.zero;
+        ActionMotionScale = 0f;
+        ActionTurnSpeed = 0f;
+        lunge.End();
+        animator.SetFloat(SpeedHash, 0f);
+        animator.SetFloat(MoveXHash, 0f);
+        animator.SetFloat(MoveYHash, 0f);
+    }
+
     void Awake()
     {
         animator = GetComponent<Animator>();
@@ -58,6 +82,13 @@ public class PlayerLocomotion : MonoBehaviour
         if (!MovementEnabled)
         {
             velocity = Vector3.zero;
+            // swing wind-up: track the lock-on target, or the stick when free
+            if (ActionTurnSpeed > 0f)
+            {
+                Vector3 dir = LockOnTarget != null ? LockOnTarget.position - transform.position : CameraRelative(input.Move);
+                dir.y = 0f; // the lock point is at chest height, don't pitch the body
+                RotateTowards(dir, ActionTurnSpeed);
+            }
             return;
         }
 
