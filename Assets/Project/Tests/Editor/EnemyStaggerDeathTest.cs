@@ -3,7 +3,7 @@ using UnityEngine;
 // Enemy stagger and death: two hits, a third timed into the enemy's wind-up cancels its attack,
 // then it's killed: lock-on drops, collider off, the corpse lies on the floor and it stays dead.
 // Play mode only: player poise is raised so enemy hits don't interrupt the combo, and the enemy
-// gets 150 HP so crits can't kill it before the stagger check.
+// gets 150 HP, topped up until the stagger check, so crits or retries can't kill it first.
 public class EnemyStaggerDeathTest : PlayModeTest
 {
     public override string Name => "EnemyStaggerDeath";
@@ -48,6 +48,8 @@ public class EnemyStaggerDeathTest : PlayModeTest
             lastPath = path;
         }
         if (PlayerStats.Health < 50) PlayerStats.RestoreFullHealth();
+        // a missed timing retries, the extra hits mustn't kill it before the stagger check
+        if (phase < 3 && enemyStats.Health < 60) enemyStats.RestoreFullHealth();
 
         bool ready = Fsm.State == CombatState.Locomotion && now - lastPress > 0.2f;
         if (!locked)

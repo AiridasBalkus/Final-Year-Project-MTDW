@@ -31,6 +31,13 @@ public class Stamina : MonoBehaviour
         Current = Mathf.Min(Current + regenRate * RegenMultiplier * Time.deltaTime, Max);
     }
 
+    public void Refill()
+    {
+        Current = Max;
+        RegenPaused = false;
+        RegenMultiplier = 1f;
+    }
+
     public void Spend(float amount)
     {
         Current -= amount;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // Owns the enemy's state machine. States read config, target and components through this.
@@ -33,6 +34,7 @@ public class EnemyBrain : MonoBehaviour
     PlayerNoise targetNoise;
     float[] attackReadyAt; // per attack in config.attacks, for cooldowns
     float leashIgnoredUntil;
+    readonly Queue<float> recentHits = new Queue<float>(); // times of hits taken outside an attack, for retaliation
 
     void Awake()
     {
@@ -67,6 +69,7 @@ public class EnemyBrain : MonoBehaviour
         stats.Damaged += OnDamaged;
         stats.PoiseDamaged += OnPoiseDamaged;
         stats.Died += OnDied;
+        target.Died += OnTargetDied;
     }
 
     void OnDisable()
@@ -74,6 +77,7 @@ public class EnemyBrain : MonoBehaviour
         stats.Damaged -= OnDamaged;
         stats.PoiseDamaged -= OnPoiseDamaged;
         stats.Died -= OnDied;
+        target.Died -= OnTargetDied;
     }
 
     void Start()
@@ -91,6 +95,24 @@ public class EnemyBrain : MonoBehaviour
         machine.Change(next);
     }
 
+    // like a fresh spawn: alive at the spawn point, full health/poise/stamina, idle. Used by rest and respawn
+    public void ResetToSpawn()
+    {
+        machine.ExitCurrent();
+        Motor.Warp(SpawnPoint, SpawnRotation);
+        stats.RestoreAll();
+        Stamina.Refill();
+        Cue.Off();
+        for (int i = 0; i < attackReadyAt.Length; i++) attackReadyAt[i] = 0f;
+        recentHits.Clear();
+        leashIgnoredUntil = 0f;
+        GetComponent<LockOnTarget>().enabled = true;
+        GetComponent<Collider>().enabled = true;
+        Animator.Rebind();
+        Animator.Update(0f);
+        machine.Change(Idle);
+    }
+
     void OnDamaged(int amount)
     {
         // getting hit from behind still wakes it up
@@ -105,19 +127,54 @@ public class EnemyBrain : MonoBehaviour
             Debug.Log($"[Enemy] {name} provoked while returning");
             ChangeState(Chase);
         }
+
+        CountHitForRetaliation();
+    }
+
+    // runs before the hit's poise damage, so a hit that also breaks poise staggers it out of the retaliation
+    void CountHitForRetaliation()
+    {
+        if (config.retaliateHits <= 0 || InAttack || machine.Current == Staggered || machine.Current == Dead) return;
+
+        recentHits.Enqueue(Time.time);
+        while (Time.time - recentHits.Peek() > config.retaliateWindow) recentHits.Dequeue();
+        if (recentHits.Count < config.retaliateHits) return;
+
+        recentHits.Clear();
+        Debug.Log($"[Enemy] {name} retaliates ({config.retaliateHits} hits in {config.retaliateWindow:F1} s)");
+        if (machine.Current != Combat) ChangeState(Combat);
+        Combat.ForceAttack(config.retaliateAttack);
     }
 
     // changing state exits Attack, which cancels the swing and its glow
     void OnPoiseDamaged(bool broke)
     {
         if (!broke || machine.Current == Dead) return;
+
+        if (InAttack && CurrentAttack.hyperArmour)
+        {
+            Debug.Log($"[Enemy] {name} poise broken, hyper armour keeps {CurrentAttack.name} going");
+            return;
+        }
+
         Debug.Log(InAttack ? $"[Enemy] {name} staggered, attack cancelled" : $"[Enemy] {name} staggered");
+        recentHits.Clear();
         ChangeState(Staggered);
     }
+
+    AttackData CurrentAttack => config.attacks[Combat.Attack.attackIndex].attack;
 
     void OnDied()
     {
         ChangeState(Dead);
+    }
+
+    // stop fighting a corpse, also cancels a swing in progress
+    void OnTargetDied()
+    {
+        if (machine.Current == Dead || machine.Current == Idle || machine.Current == Return) return;
+        Debug.Log($"[Enemy] {name} target died, returning");
+        ChangeState(Return);
     }
 
     // animation events, only the active attack acts on them
@@ -130,6 +187,9 @@ public class EnemyBrain : MonoBehaviour
     {
         if (InAttack) Combat.Attack.OnEnd();
     }
+
+    // player-only cancel point on the shared slash clip, enemies finish at AttackEnd
+    public void AttackRecover() { }
 
     bool InAttack => machine.Current == Combat && Combat.Sub.Current == Combat.Attack;
 
@@ -190,6 +250,7 @@ public class EnemyBrain : MonoBehaviour
     // sight, or hearing inside the player's noise radius
     public bool NoticesTarget()
     {
+        if (target.IsDead) return false;
         if (CanSeeTarget()) return true;
         if (DistanceToTarget > targetNoise.Radius) return false;
         Debug.Log($"[Enemy] {name} heard the player ({DistanceToTarget:F1} m)");

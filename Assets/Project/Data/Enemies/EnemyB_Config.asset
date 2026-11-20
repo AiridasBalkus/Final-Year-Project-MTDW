@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8fe5db49a4ad0074696ab2abc0823437, type: 3}
+  m_Name: EnemyB_Config
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyConfig
+  detectionRange: 10
+  viewAngle: 60
+  alertTime: 0.6
+  loseTrackRange: 18
+  leashDistance: 20
+  provokedLeashGrace: 5
+  reaggroMargin: 5
+  lineOfSightMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  eyeHeight: 1.6
+  targetHeight: 1
+  walkSpeedMin: 1
+  walkSpeedMax: 1.15
+  runSpeedMin: 2.3
+  runSpeedMax: 2.6
+  acceleration: 6
+  turnSpeed: 200
+  patrolWaitTime: 2
+  arriveDistance: 0.5
+  attacks:
+  - attack: {fileID: 11400000, guid: 221d7df369f60254ea242645eb93f43c, type: 2}
+    weight: 1
+    cooldown: 7
+    animatorId: 1
+  - attack: {fileID: 11400000, guid: 176ac00cd11a2af4f9fddc938858d91d, type: 2}
+    weight: 2
+    cooldown: 3
+    animatorId: 0
+  combatRangeMargin: 1
+  preferredDistance: 2
+  minDistance: 1.5
+  reachBuffer: 0.4
+  repositionTimeMin: 0.5
+  repositionTimeMax: 1.5
+  recoverTime: 1.2
+  staggerTime: 2
+  retaliateHits: 3
+  retaliateWindow: 3.5
+  retaliateAttack: 1
